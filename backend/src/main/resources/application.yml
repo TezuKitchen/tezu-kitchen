@@ -28,7 +28,7 @@ spring:
 # JWT Configuration
 app:
   jwt:
-    secret: ${JWT_SECRET:default-secret-change-in-production}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 # API Documentation

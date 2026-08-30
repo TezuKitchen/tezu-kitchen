@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.UUID;
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class JwtService {
@@ -18,6 +19,21 @@ public class JwtService {
 
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
+
+    private SecretKey signingKey;
+
+    @PostConstruct
+    public void init() {
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+            if (keyBytes.length < 32) {
+                throw new IllegalArgumentException("Key length is less than 256 bits");
+            }
+            this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        } catch (Exception e) {
+            throw new IllegalStateException("JWT_SECRET must be a valid Base64-encoded string of at least 256 bits — generate one with openssl rand -base64 64", e);
+        }
+    }
 
     public String generateToken(UUID userId, String email, String role) {
         return Jwts.builder()
@@ -60,7 +76,6 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return this.signingKey;
     }
 }
