@@ -28,6 +28,7 @@ public class Restaurant {
     @Column(nullable = false)
     private String location;
 
+    @Builder.Default
     @Column(name = "is_open", nullable = false)
     private boolean isOpen = true;
 
