@@ -1,6 +1,8 @@
 package com.tezukitchen.api.common.exception;
 
 import com.tezukitchen.api.common.response.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,11 +16,14 @@ import java.util.List;
 /**
  * Global exception handler for consistent API error responses.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        log.warn("Validation error on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         List<String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .toList();
@@ -33,7 +38,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        log.warn("Resource not found on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
                 ex.getMessage(),
@@ -43,7 +50,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex, HttpServletRequest request) {
+        log.warn("Bad request on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
                 ex.getMessage(),
@@ -53,7 +62,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
+        log.warn("Unauthorized access on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
                 ex.getMessage(),
@@ -63,7 +74,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex, HttpServletRequest request) {
+        log.warn("Forbidden access on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
                 ex.getMessage(),
@@ -73,7 +86,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex) {
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex, HttpServletRequest request) {
+        log.warn("Optimistic locking conflict on {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.CONFLICT.value(),
                 "The resource was modified by another request. Please retry.",
@@ -83,7 +98,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "An unexpected error occurred",
