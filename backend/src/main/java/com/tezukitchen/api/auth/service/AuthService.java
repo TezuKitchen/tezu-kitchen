@@ -1,10 +1,15 @@
 package com.tezukitchen.api.auth.service;
 
+import com.tezukitchen.api.auth.dto.request.LoginRequest;
+import com.tezukitchen.api.auth.dto.request.RegisterRequest;
+import com.tezukitchen.api.auth.dto.response.AuthResponse;
+
 /**
- * Authentication service interface.
- * <p>
- * TODO: Define authentication methods (register, login, refresh, logout)
+ * Authentication service.
  */
 public interface AuthService {
-    // TODO: Add method signatures
+
+    AuthResponse register(RegisterRequest request);
+
+    AuthResponse login(LoginRequest request);
 }
