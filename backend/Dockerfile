@@ -23,7 +23,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=build /app/target/*.jar app.jar
 
 # No hardcoded credentials — all config via environment variables
-EXPOSE ${SERVER_PORT:-8080}
+EXPOSE 8080
 
 USER appuser
 
