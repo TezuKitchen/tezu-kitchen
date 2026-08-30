@@ -62,28 +62,41 @@ cp .env.example .env
 # Edit .env with your local configuration
 ```
 
-### 3. Start PostgreSQL
+### 3. Start the Application
+
+The primary way to run the entire stack (database and backend) is through Docker Compose:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d --build
 ```
 
-This starts PostgreSQL on port `5432` with a named volume for data persistence.
+To check the backend logs:
+```bash
+docker compose logs -f backend
+```
 
-### 4. Start the Backend
+When you change only backend code and the database doesn't need touching, you can rebuild just the backend service:
+```bash
+docker compose up -d --build backend
+```
+
+To stop everything:
+```bash
+docker compose down
+```
+
+*(Alternative)* For a fast local development loop where you run the Java app directly on your host:
 
 ```bash
+# Start only the database
+docker compose up -d postgres
+
+# Run backend via Maven
 cd backend
 ./mvnw spring-boot:run
 ```
 
 The API will be available at `http://localhost:8080`.
-
-Alternatively, start everything with Docker Compose:
-
-```bash
-docker compose up -d
-```
 
 ### 5. Run Tests
 

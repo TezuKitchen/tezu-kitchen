@@ -89,28 +89,44 @@ Examples:
 git clone <repository-url>
 cd TezuKitchen
 
-# Copy environment file
+# Copy environment file and configure it
 cp .env.example .env
 
-# Start PostgreSQL
-docker compose up -d postgres
-
-# Build and run the backend
-cd backend
-./mvnw spring-boot:run
+# Build and start the entire stack
+docker compose up -d --build
 ```
 
 ### Daily Development
 
 ```bash
-# Start database (if not running)
+# Start or update the stack
+docker compose up -d --build
+
+# View backend logs
+docker compose logs -f backend
+
+# Rebuild only the backend service
+docker compose up -d --build backend
+
+# Stop the stack
+docker compose down
+```
+
+*(Alternative)* Fast local dev loop (Maven on host):
+```bash
+# Start only the database
 docker compose up -d postgres
 
 # Run backend
 cd backend
 ./mvnw spring-boot:run
+```
 
+### Running Tests
+
+```bash
 # Run tests
+cd backend
 ./mvnw test
 ```
 
