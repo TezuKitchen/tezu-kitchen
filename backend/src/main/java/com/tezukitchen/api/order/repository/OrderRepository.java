@@ -1,15 +1,17 @@
 package com.tezukitchen.api.order.repository;
 
 import com.tezukitchen.api.order.entity.Order;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-/**
- * Order JPA repository.
- * <p>
- * TODO: Add custom query methods (e.g., findByUserId, findByRestaurantId)
- */
+import java.util.UUID;
+
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    // TODO: Add custom query methods
+public interface OrderRepository extends JpaRepository<Order, UUID> {
+
+    Page<Order> findByUserId(UUID userId, Pageable pageable);
+
+    Page<Order> findByRestaurantId(UUID restaurantId, Pageable pageable);
 }

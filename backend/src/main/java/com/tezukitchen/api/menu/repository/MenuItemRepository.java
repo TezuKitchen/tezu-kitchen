@@ -4,12 +4,13 @@ import com.tezukitchen.api.menu.entity.MenuItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-/**
- * MenuItem JPA repository.
- * <p>
- * TODO: Add custom query methods (e.g., findByRestaurantId)
- */
+import java.util.List;
+import java.util.UUID;
+
 @Repository
-public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
-    // TODO: Add custom query methods
+public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
+
+    List<MenuItem> findByRestaurantId(UUID restaurantId);
+
+    List<MenuItem> findByRestaurantIdAndIsAvailableTrue(UUID restaurantId);
 }
