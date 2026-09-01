@@ -20,12 +20,14 @@ feature/<module>-<description>    → New features
 bugfix/<module>-<description>     → Bug fixes
 hotfix/<description>              → Urgent production fixes
 refactor/<module>-<description>   → Refactoring
+testing/<Testing-type>            → Testing
 ```
 
 Examples:
 - `feature/auth-jwt-implementation`
 - `feature/restaurant-crud`
 - `bugfix/order-status-validation`
+-  testing/api-testing
 
 ### Workflow Steps
 
