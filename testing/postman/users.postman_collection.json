@@ -1,0 +1,11 @@
+{
+  "info": {
+    "name": "TezuKitchen - Users Test Suite",
+    "description": "Automated test collection for Users API endpoints (/api/v1/users).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" }
+  ],
+  "item": []
+}
