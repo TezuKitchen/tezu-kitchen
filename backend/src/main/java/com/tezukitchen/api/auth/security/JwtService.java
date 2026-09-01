@@ -20,6 +20,9 @@ public class JwtService {
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
+    @Value("${app.jwt.refresh-expiration-ms:604800000}")
+    private long jwtRefreshExpirationMs;
+
     private SecretKey signingKey;
 
     @PostConstruct
@@ -44,6 +47,25 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public String generateRefreshToken(UUID userId) {
+        return Jwts.builder()
+                .subject(userId.toString())
+                .claim("type", "refresh")
+                .id(UUID.randomUUID().toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationMs))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public long getJwtExpirationMs() {
+        return jwtExpirationMs;
+    }
+
+    public long getJwtRefreshExpirationMs() {
+        return jwtRefreshExpirationMs;
     }
 
     public UUID getUserIdFromToken(String token) {
