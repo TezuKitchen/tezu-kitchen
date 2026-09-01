@@ -113,7 +113,8 @@ cd backend
 | `DATABASE_USERNAME` | Database username | `tezukitchen` |
 | `DATABASE_PASSWORD` | Database password | `changeme` |
 | `JWT_SECRET` | Secret key for JWT signing | — |
-| `JWT_EXPIRATION_MS` | JWT token expiration in ms | `86400000` |
+| `JWT_EXPIRATION_MS` | JWT access token expiration in ms | `3600000` |
+| `JWT_REFRESH_EXPIRATION_MS` | JWT refresh token expiration in ms | `604800000` |
 | `SERVER_PORT` | Application server port | `8080` |
 | `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` |
 
@@ -139,22 +140,19 @@ See [docs/development.md](docs/development.md) for detailed guidelines.
 - [Architecture](docs/architecture.md) — System design and module structure
 - [Development](docs/development.md) — Git workflow, code style, team boundaries
 - [Database](docs/database.md) — Schema design and migration conventions
-- [API](docs/api.md) — REST API conventions and planned endpoints
+- [API](docs/api.md) — REST API conventions and endpoints
 
 ## Current Status
 
 ### ✅ Current
 - Project architecture and scaffolding
 - Modular monolith package structure
+- Authentication & JWT (Registration, Login, Token Refresh with Rotation, Logout with Revocation)
+- User, Restaurant, Menu, Order, Payment backend modules
+- Database schema & Flyway migrations (V1, V2, V3)
 - Docker development environment
 - CI pipeline
 - Documentation
 
 ### 🔜 Planned
-- Authentication & JWT
-- User management
-- Restaurant management
-- Menu management
-- Order processing
-- Payment processing
 - Frontend application

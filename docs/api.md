@@ -4,7 +4,7 @@
 
 - **Base URL**: `/api/v1`
 - **Format**: JSON
-- **Authentication**: JWT Bearer token (planned)
+- **Authentication**: JWT Bearer token (`Authorization: Bearer <token>`)
 - **API Docs**: Available at `/api/swagger-ui` when running locally
 
 ## Response Format
@@ -31,18 +31,30 @@
 }
 ```
 
-## Planned API Endpoints
-
-> ⚠️ **Status: Planned** — These endpoints document the intended API structure. They are not yet implemented.
+## API Endpoints
 
 ### Authentication (`/api/v1/auth`)
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/api/v1/auth/register` | Register a new user | No |
-| POST | `/api/v1/auth/login` | Login and receive JWT | No |
-| POST | `/api/v1/auth/refresh` | Refresh JWT token | Yes |
-| POST | `/api/v1/auth/logout` | Logout (invalidate token) | Yes |
+| POST | `/api/v1/auth/login` | Login and receive JWT access & refresh tokens | No |
+| POST | `/api/v1/auth/refresh` | Refresh JWT token (token rotation) | No |
+| POST | `/api/v1/auth/logout` | Logout (revoke refresh token / session) | Yes |
+
+#### Auth Response Schema
+```json
+{
+  "accessToken": "eyJhbGciOi...",
+  "refreshToken": "eyJhbGciOi...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600000,
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "role": "STUDENT"
+}
+```
 
 ### Users (`/api/v1/users`)
 

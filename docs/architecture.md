@@ -111,18 +111,21 @@ SecurityFilterChain       ← Spring Security filter chain
 Controller                ← Authorized request reaches the endpoint
 ```
 
-Security components live in `auth/security/` and will include:
+Security components live in `auth/security/` and include:
 - `SecurityConfig` — Filter chain and endpoint authorization rules
 - `JwtAuthenticationFilter` — JWT extraction and validation
-- `JwtService` — Token generation and parsing
+- `JwtService` — Access & refresh token generation and parsing
 - `AuthEntryPoint` — Unauthorized access handling
-- `AccessDeniedHandlerImpl` — Forbidden access handling
+
+### Token Lifecycle & Revocation
+- **Access Tokens**: Short-lived (1 hour default) stateless JWTs containing user ID, email, and role claims.
+- **Refresh Tokens**: Longer-lived (7 days default) tokens persisted in PostgreSQL with automated single-use rotation and instant revocation on logout.
 
 ## Database Architecture
 
 - **Database**: PostgreSQL 16
 - **Migration tool**: Flyway
-- **Entities**: User, Restaurant, MenuItem, Order, OrderItem, Payment
+- **Entities**: User, RefreshToken, Restaurant, MenuItem, Order, OrderItem, Payment
 
 See [database.md](database.md) for details.
 
