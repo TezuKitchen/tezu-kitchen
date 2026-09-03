@@ -78,7 +78,7 @@ class MenuControllerTest {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(
                         uid, null,
-                        List.of(new SimpleGrantedAuthority("ROLE_RESTAURANT_OWNER")));
+                        List.of(new SimpleGrantedAuthority("ROLE_OWNER")));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
