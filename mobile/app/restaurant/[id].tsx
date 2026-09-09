@@ -9,31 +9,47 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, Clock } from 'lucide-react-native';
+import { ArrowLeft, Star, Clock, ShoppingBag } from 'lucide-react-native';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
 import { useCart } from '../../src/context/CartContext';
 
+interface RestaurantDetails {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  open: boolean;
+}
+
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const cart = useCart();
   
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [restaurant, setRestaurant] = useState<RestaurantDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMenu = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get(`/menu/restaurant/${id}/available`);
-        setMenuItems(response.data.data);
+        const [menuRes, restRes] = await Promise.all([
+          api.get(`/menu/restaurant/${id}/available`),
+          api.get(`/restaurants/${id}`)
+        ]);
+        setMenuItems(menuRes.data.data);
+        setRestaurant(restRes.data.data);
       } catch (error) {
-        console.error('Failed to fetch menu:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchMenu();
+    if (id) {
+      fetchData();
+    }
   }, [id]);
 
   const renderHeader = () => (
@@ -48,8 +64,8 @@ export default function RestaurantMenuScreen() {
       </View>
       
       <View style={styles.restaurantInfo}>
-        <Text style={styles.restaurantName}>Tezu Dhaba</Text>
-        <Text style={styles.restaurantTags}>North Indian • Chinese • Fast Food</Text>
+        <Text style={styles.restaurantName}>{restaurant?.name || 'Loading...'}</Text>
+        <Text style={styles.restaurantTags}>{restaurant?.description || ''}</Text>
         
         <View style={styles.metaRow}>
           <View style={styles.ratingBadge}>
@@ -68,6 +84,11 @@ export default function RestaurantMenuScreen() {
     </View>
   );
 
+  const getQuantity = (itemId: string) => {
+    const cartItem = cart.items.find(i => i.id === itemId);
+    return cartItem ? cartItem.quantity : 0;
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {loading ? (
@@ -75,21 +96,55 @@ export default function RestaurantMenuScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
-          data={menuItems}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={renderHeader}
-          renderItem={({ item }) => (
-            <MenuItemCard 
-              item={item} 
-              onAdd={() => console.log('Added to cart:', item.name)} 
-            />
+        <>
+          <FlatList
+            data={menuItems}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListHeaderComponent={renderHeader}
+            renderItem={({ item }) => (
+              <MenuItemCard 
+                item={item} 
+                quantity={getQuantity(item.id)}
+                onAdd={() => {
+                  if (restaurant) {
+                    cart.addItem(item, restaurant.id, restaurant.name);
+                  }
+                }}
+                onUpdateQuantity={(quantity) => {
+                  if (quantity === 0) {
+                    cart.removeItem(item.id);
+                  } else {
+                    cart.updateQuantity(item.id, quantity);
+                  }
+                }}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No items available right now.</Text>
+            }
+          />
+          {cart.totalItems > 0 && (
+            <View style={styles.floatingCartContainer}>
+              <TouchableOpacity 
+                style={styles.floatingCartButton}
+                onPress={() => router.push('/cart')}
+                activeOpacity={0.9}
+              >
+                <View style={styles.cartInfo}>
+                  <ShoppingBag size={20} color={colors.surface} />
+                  <View>
+                    <Text style={styles.cartItemsText}>
+                      {cart.totalItems} ITEM{cart.totalItems > 1 ? 'S' : ''}
+                    </Text>
+                    <Text style={styles.cartTotalText}>₹{cart.totalAmount}</Text>
+                  </View>
+                </View>
+                <Text style={styles.viewCartText}>View Cart →</Text>
+              </TouchableOpacity>
+            </View>
           )}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No items available right now.</Text>
-          }
-        />
+        </>
       )}
     </SafeAreaView>
   );
@@ -183,7 +238,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   listContent: {
-    paddingBottom: spacing.xxxl,
+    paddingBottom: 100, // Make room for floating cart
   },
   centered: {
     flex: 1,
@@ -196,5 +251,42 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing.xl,
+  },
+  floatingCartContainer: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    left: spacing.lg,
+    right: spacing.lg,
+  },
+  floatingCartButton: {
+    backgroundColor: colors.primary,
+    borderRadius: layout.radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    ...layout.shadows.brand,
+  },
+  cartInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  cartItemsText: {
+    color: colors.surface,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.xs,
+    opacity: 0.9,
+  },
+  cartTotalText: {
+    color: colors.surface,
+    fontFamily: typography.fonts.headingExtra,
+    fontSize: typography.sizes.md,
+  },
+  viewCartText: {
+    color: colors.surface,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.md,
   },
 });

@@ -14,9 +14,11 @@ export interface MenuItem {
 interface MenuItemCardProps {
   item: MenuItem;
   onAdd: () => void;
+  quantity?: number;
+  onUpdateQuantity?: (quantity: number) => void;
 }
 
-export default function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
+export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuantity }: MenuItemCardProps) {
   return (
     <View style={[styles.card, !item.available && styles.cardUnavailable]}>
       <View style={styles.details}>
@@ -34,13 +36,31 @@ export default function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       
       <View style={styles.actionContainer}>
         <View style={styles.imagePlaceholder} />
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={onAdd}
-          disabled={!item.available}
-        >
-          <Text style={styles.addButtonText}>ADD</Text>
-        </TouchableOpacity>
+        {quantity > 0 ? (
+          <View style={styles.stepperContainer}>
+            <TouchableOpacity 
+              style={styles.stepperButton}
+              onPress={() => onUpdateQuantity && onUpdateQuantity(quantity - 1)}
+            >
+              <Text style={styles.stepperButtonText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{quantity}</Text>
+            <TouchableOpacity 
+              style={styles.stepperButton}
+              onPress={() => onUpdateQuantity && onUpdateQuantity(quantity + 1)}
+            >
+              <Text style={styles.stepperButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={onAdd}
+            disabled={!item.available}
+          >
+            <Text style={styles.addButtonText}>ADD</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -119,5 +139,35 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.sm,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: layout.radius.sm,
+    position: 'absolute',
+    bottom: -10,
+    height: 36,
+    ...layout.shadows.sm,
+  },
+  stepperButton: {
+    paddingHorizontal: spacing.md,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperButtonText: {
+    color: colors.primary,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.lg,
+    lineHeight: 22,
+  },
+  quantityText: {
+    color: colors.primary,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.sm,
+    paddingHorizontal: spacing.sm,
   },
 });
