@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { useRouter } from 'expo-router';
 import api, { setOnUnauthorized } from '../services/api';
 
 type UserRole = 'STUDENT' | 'OWNER';
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     // Check if user is already logged in on app startup
@@ -52,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('401 detected, auto-logging out');
       setUser(null);
       setRole(null);
+      router.replace('/(auth)/login');
     });
 
     bootstrapAsync();
@@ -77,6 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await SecureStore.deleteItemAsync('userData');
       setUser(null);
       setRole(null);
+      router.replace('/(auth)/login');
     } catch (e) {
       console.error('Failed to clear authentication data', e);
     }
