@@ -8,11 +8,12 @@ TezuKitchen is a campus food delivery app consisting of:
 2. **Frontend (`/mobile`)**: React Native built with Expo Router and TypeScript. Uses `axios` for API calls and Context API for state management.
 
 ## State of the Project (as of Sept 2026)
-- **What works**: Authentication (JWT) is complete. The Student Home screen (fetching dhabas) and Menu screen (fetching items) are complete. The tab navigations for both `(student)` and `(owner)` are set up.
+- **What works**: Authentication (JWT), Student Home (restaurant list), Restaurant Menu (with cart integration), Cart & Checkout (order placement + payment), Student Orders (active/past with cancel), Search (client-side filtering), Owner Live Orders (accept/reject/status transitions with auto-refresh), Owner Menu Management (CRUD + availability toggles), Owner Store Settings (create/edit restaurant, open/close toggle).
 - **What is missing**: 
-  - Cart UI and Checkout API integration.
-  - Owner Store Settings screen (creating a restaurant `POST /api/v1/restaurants`).
-  - Missing image URLs in the backend JSON responses (currently the app shows gray placeholders).
+  - Owner Analytics dashboard (placeholder).
+  - Image URLs in the backend JSON responses (the app shows gray placeholders for restaurant/menu images).
+  - Push notifications for real-time order updates.
+  - Database seeding (no CommandLineRunner to pre-populate test data).
 
 ## AI Agent Rules
 
@@ -28,4 +29,10 @@ TezuKitchen is a campus food delivery app consisting of:
 
 ### 3. API Communication
 - In the mobile app, always use the pre-configured `api` instance from `mobile/src/services/api.ts`. It automatically handles injecting the JWT token via interceptors.
+- Backend response payload is always at `response.data.data` (axios parses the HTTP body into `response.data`, and `ApiResponse` wraps the actual payload in a `data` field).
 - For physical device testing on Android, `api.ts` correctly points to the `LOCAL_IP` of the host machine. Do not use `10.0.2.2` (Emulator IP) unless you explicitly detect the user is on an emulator.
+
+### 4. Order Status Transitions
+The backend strictly enforces these transitions:
+- **Owner can**: PLACED→ACCEPTED, PLACED→REJECTED, ACCEPTED→PREPARING, PREPARING→OUT_FOR_DELIVERY, OUT_FOR_DELIVERY→DELIVERED
+- **Student can**: PLACED→CANCELLED, ACCEPTED→CANCELLED
