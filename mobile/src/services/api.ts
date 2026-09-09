@@ -1,8 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 
-// Use 10.0.2.2 for Android emulator, localhost for iOS simulator, or specific IP for physical device
 // For physical device testing on local network, use the computer's local IP address
 const LOCAL_IP = '10.113.102.112';
 
@@ -15,6 +13,14 @@ const getBaseUrl = () => {
 };
 
 export const API_URL = getBaseUrl();
+
+// Simple event emitter for auth state changes
+type AuthEventCallback = () => void;
+let onUnauthorizedCallback: AuthEventCallback | null = null;
+
+export const setOnUnauthorized = (callback: AuthEventCallback) => {
+  onUnauthorizedCallback = callback;
+};
 
 const api = axios.create({
   baseURL: API_URL,
@@ -48,10 +54,13 @@ api.interceptors.response.use(
   async (error) => {
     // Handle 401 Unauthorized (token expired, etc.)
     if (error.response && error.response.status === 401) {
-      console.log('Unauthorized error, clearing token');
+      console.log('Token expired or unauthorized, forcing logout');
       await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userRole');
-      // Could trigger an event here to force logout in the UI
+      await SecureStore.deleteItemAsync('userData');
+      // Notify AuthContext to reset state and redirect to login
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback();
+      }
     }
     return Promise.reject(error);
   }

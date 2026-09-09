@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import api from '../services/api';
+import api, { setOnUnauthorized } from '../services/api';
 
 type UserRole = 'STUDENT' | 'OWNER';
 
@@ -39,9 +39,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = JSON.parse(userDataStr);
           setUser(userData);
           setRole(userData.role);
-          
-          // Optionally, verify token validity with backend here
-          // const response = await api.get('/auth/me');
         }
       } catch (e) {
         console.error('Failed to restore authentication state', e);
@@ -49,6 +46,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       }
     };
+
+    // Register the 401 handler so expired tokens auto-logout
+    setOnUnauthorized(() => {
+      console.log('401 detected, auto-logging out');
+      setUser(null);
+      setRole(null);
+    });
 
     bootstrapAsync();
   }, []);
