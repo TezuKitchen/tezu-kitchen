@@ -29,11 +29,15 @@ This is the mobile application for TezuKitchen, built using **React Native (Expo
    - `AuthContext`: Global user state, JWT token lifecycle, SecureStore persistence.
    - `CartContext`: Cart items, restaurant lock, quantity management, totals.
 
-### 🚧 What Still Needs Work
-- **Image Support**: Backend doesn't have `imageUrl` fields on Restaurant or MenuItem entities yet. The app shows gray placeholders.
-- **Analytics Dashboard** (`app/(owner)/analytics.tsx`): Still a placeholder.
-- **Push Notifications**: No real-time order notifications yet.
-- **Database Seeding**: No `CommandLineRunner` to pre-populate test restaurants — restaurants must be created manually via the Owner Store tab.
+### 🚧 Features to be Implemented Next (What Still Needs Work)
+- **Owner Analytics Dashboard** (`app/(owner)/analytics.tsx`): Still a placeholder. Needs charts for daily revenue and order volume.
+- **Push Notifications**: Real-time order status updates for students and new order alerts for owners using Expo Push Notifications.
+- **User Reviews & Ratings**: Allow students to rate and review restaurants and specific menu items after an order is delivered.
+- **Payment Gateway Integration**: Replace the dummy COD/UPI selection with a real payment provider like Razorpay or Stripe.
+- **Favorite Restaurants**: Let students bookmark their favorite dhabas for quick access.
+- **Advanced User Profiles**: Allow users to save multiple delivery addresses, change passwords, and update contact info.
+- **Promotions & Discount Codes**: System for owners to create promo codes and students to apply them during checkout.
+- **Database Seeding**: A backend `CommandLineRunner` script to pre-populate test users, restaurants, and menu items so they don't have to be created manually.
 
 ## Running the App
 

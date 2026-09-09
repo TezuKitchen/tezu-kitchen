@@ -9,10 +9,14 @@ TezuKitchen is a campus food delivery app consisting of:
 
 ## State of the Project (as of Sept 2026)
 - **What works**: Authentication (JWT), Student Home (restaurant list), Restaurant Menu (with cart integration), Cart & Checkout (order placement + payment), Student Orders (active/past with cancel), Search (client-side filtering), Owner Live Orders (accept/reject/status transitions with auto-refresh), Owner Menu Management (CRUD + availability toggles), Owner Store Settings (create/edit restaurant, open/close toggle).
-- **What is missing**: 
+- **Features to be Implemented Next (What is missing)**: 
   - Owner Analytics dashboard (placeholder).
-  - Image URLs in the backend JSON responses (the app shows gray placeholders for restaurant/menu images).
   - Push notifications for real-time order updates.
+  - User Reviews & Ratings (for restaurants and menu items).
+  - Payment Gateway Integration (replacing dummy COD/UPI).
+  - Favorite Restaurants (bookmarks for students).
+  - Advanced User Profiles (address book, profile editing).
+  - Promotions & Discount Codes.
   - Database seeding (no CommandLineRunner to pre-populate test data).
 
 ## AI Agent Rules
