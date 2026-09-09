@@ -153,7 +153,7 @@ export default function LoginScreen() {
                 styles.roleText, 
                 role === 'OWNER' && styles.roleTextActive
               ]}>
-                Dhaba Owner
+                Restaurant Owner
               </Text>
             </TouchableOpacity>
           </View>
@@ -210,6 +210,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              textContentType="emailAddress"
             />
 
             <View style={styles.passwordHeader}>
@@ -226,6 +227,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              textContentType="password"
             />
 
             <TouchableOpacity 

@@ -83,7 +83,7 @@ export default function StudentHome() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
           ListHeaderComponent={
-            <Text style={styles.sectionTitle}>All Dhabas</Text>
+            <Text style={styles.sectionTitle}>All Restaurants</Text>
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

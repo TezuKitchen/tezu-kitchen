@@ -33,7 +33,7 @@ This is the mobile application for TezuKitchen, built using **React Native (Expo
 - **Image Support**: Backend doesn't have `imageUrl` fields on Restaurant or MenuItem entities yet. The app shows gray placeholders.
 - **Analytics Dashboard** (`app/(owner)/analytics.tsx`): Still a placeholder.
 - **Push Notifications**: No real-time order notifications yet.
-- **Database Seeding**: No `CommandLineRunner` to pre-populate test dhabas — restaurants must be created manually via the Owner Store tab.
+- **Database Seeding**: No `CommandLineRunner` to pre-populate test restaurants — restaurants must be created manually via the Owner Store tab.
 
 ## Running the App
 

@@ -87,7 +87,7 @@ export default function SearchScreen() {
         <Search size={20} color={colors.textLight} style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Search for your favorite dhaba..."
+          placeholder="Search for your favorite restaurant..."
           placeholderTextColor={colors.textLight}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -121,12 +121,12 @@ export default function SearchScreen() {
           <SearchX size={40} color={colors.textMuted} />
         </View>
         <Text style={styles.emptyTitle}>
-          {hasQuery ? 'No Dhabas Found' : 'No Dhabas Available'}
+          {hasQuery ? 'No Restaurants Found' : 'No Restaurants Available'}
         </Text>
         <Text style={styles.emptySubtitle}>
           {hasQuery
-            ? `We couldn't find any dhaba matching "${debouncedQuery}". Try another keyword or location.`
-            : 'There are currently no dhabas listed.'}
+            ? `We couldn't find any restaurant matching "${debouncedQuery}". Try another keyword or location.`
+            : 'There are currently no restaurants listed.'}
         </Text>
         {hasQuery && (
           <TouchableOpacity
@@ -148,8 +148,8 @@ export default function SearchScreen() {
     return (
       <Text style={styles.resultsCount}>
         {hasQuery
-          ? `Found ${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'dhaba' : 'dhabas'} for "${debouncedQuery}"`
-          : `All Dhabas (${restaurants.length})`}
+          ? `Found ${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'restaurant' : 'restaurants'} for "${debouncedQuery}"`
+          : `All Restaurants (${restaurants.length})`}
       </Text>
     );
   };
