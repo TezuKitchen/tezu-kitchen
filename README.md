@@ -29,8 +29,8 @@ The backend follows a **package-by-feature** structure where each feature module
 
 ```
 TezuKitchen/
-├── backend/          # Spring Boot application
-├── frontend/         # Frontend application (planned)
+├── backend/          # Spring Boot REST API
+├── mobile/           # React Native (Expo) mobile app
 ├── database/         # Database documentation & raw migrations
 ├── docs/             # Project documentation
 ├── .github/          # CI/CD workflows
@@ -151,8 +151,11 @@ See [docs/development.md](docs/development.md) for detailed guidelines.
 - User, Restaurant, Menu, Order, Payment backend modules
 - Database schema & Flyway migrations (V1, V2, V3)
 - Docker development environment
+- React Native (Expo) mobile client (Student & Owner flows)
 - CI pipeline
 - Documentation
 
 ### 🔜 Planned
-- Frontend application
+- Owner Analytics charts
+- Push Notifications
+- Payment Gateway Integration (Razorpay / Stripe)

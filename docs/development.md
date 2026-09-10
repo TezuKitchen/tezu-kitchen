@@ -124,6 +124,28 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
+### Mobile App (Frontend) Development
+```bash
+cd mobile
+
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment (for local or USB development)
+cp .env.example .env
+# Set EXPO_PUBLIC_API_URL=http://localhost:8080/api/v1 (for USB testing)
+# or let it auto-detect via Metro bundler
+
+# 3. For physical device testing via USB (recommended to bypass network isolation):
+adb reverse tcp:8080 tcp:8080 && adb reverse tcp:8081 tcp:8081
+
+# 4. Start Expo with cleared cache
+npm start -- -c
+
+# 5. Launch in Expo Go on Android device
+adb shell am start -a android.intent.action.VIEW -d "exp://localhost:8081"
+```
+
 ### Running Tests
 
 ```bash
