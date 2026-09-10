@@ -1,25 +1,54 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Current active local network IP of host machine
-const LOCAL_IP = '10.59.60.162';
+// Fallback IP of host machine for physical devices when auto-detection is not available
+const DEFAULT_LOCAL_IP = '10.59.60.162';
 
 const getBaseUrl = () => {
-  if (__DEV__) {
-    // Automatically detect the host running the Expo Metro bundler
-    const debuggerHost = Constants.expoConfig?.hostUri;
-    if (debuggerHost) {
-      const host = debuggerHost.split(':')[0];
-      return `http://${host}:8080/api/v1`;
-    }
-    return `http://${LOCAL_IP}:8080/api/v1`;
+  // 1. Explicit override via EXPO_PUBLIC_API_URL in .env if provided
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
   }
+
+  if (__DEV__) {
+    // 2. Web browser: connect directly to localhost
+    if (Platform.OS === 'web') {
+      return 'http://localhost:8080/api/v1';
+    }
+
+    // 3. Automatically detect host IP from Expo Metro bundler across various Expo SDK versions
+    const hostUri =
+      Constants.expoConfig?.hostUri ||
+      (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
+      (Constants as any).manifest?.debuggerHost;
+
+    if (hostUri) {
+      const host = hostUri.split(':')[0];
+      // Do not use tunnel hostnames (e.g. *.exp.direct or *.ngrok*) because Expo tunnel only proxies port 8081 (Metro), not port 8080 (Backend)
+      const isTunnel = host.includes('exp.direct') || host.includes('ngrok');
+      if (host && !isTunnel) {
+        // If host resolves to localhost/127.0.0.1 on Android, redirect to 10.0.2.2 for Android emulator
+        if (Platform.OS === 'android' && (host === 'localhost' || host === '127.0.0.1')) {
+          return 'http://10.0.2.2:8080/api/v1';
+        }
+        return `http://${host}:8080/api/v1`;
+      }
+    }
+
+    // 4. Fallback for physical devices when debuggerHost is unavailable
+    return `http://${DEFAULT_LOCAL_IP}:8080/api/v1`;
+  }
+
   // Production URL
   return 'https://api.tezukitchen.com/api/v1';
 };
 
 export const API_URL = getBaseUrl();
+if (__DEV__) {
+  console.log('[TezuKitchen API] Configured baseURL:', API_URL);
+}
 
 // Simple event emitter for auth state changes
 type AuthEventCallback = () => void;
