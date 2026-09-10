@@ -9,11 +9,11 @@ testing/
 ├── README.md
 └── postman/
     ├── auth.postman_collection.json          # 26-case automated auth test suite (Implemented)
-    ├── users.postman_collection.json         # Users API test suite (Placeholder)
-    ├── restaurants.postman_collection.json   # Restaurants API test suite (Placeholder)
-    ├── menu.postman_collection.json          # Menu API test suite (Placeholder)
-    ├── orders.postman_collection.json        # Orders API test suite (Placeholder)
-    └── payments.postman_collection.json      # Payments API test suite (Placeholder)
+    ├── users.postman_collection.json         # 10-case automated users test suite (Implemented)
+    ├── restaurants.postman_collection.json   # 15-case automated restaurants test suite (Implemented)
+    ├── menu.postman_collection.json          # 16-case automated menu test suite (Implemented)
+    ├── orders.postman_collection.json        # 17-case automated orders test suite (Implemented)
+    └── payments.postman_collection.json      # 16-case automated payments test suite (Implemented)
 ```
 
 ## How to Run in Postman
