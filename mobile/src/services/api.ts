@@ -1,11 +1,18 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-// For physical device testing on local network, use the computer's local IP address
-const LOCAL_IP = '10.113.102.112';
+// Current active local network IP of host machine
+const LOCAL_IP = '10.59.60.162';
 
 const getBaseUrl = () => {
   if (__DEV__) {
+    // Automatically detect the host running the Expo Metro bundler
+    const debuggerHost = Constants.expoConfig?.hostUri;
+    if (debuggerHost) {
+      const host = debuggerHost.split(':')[0];
+      return `http://${host}:8080/api/v1`;
+    }
     return `http://${LOCAL_IP}:8080/api/v1`;
   }
   // Production URL
