@@ -49,13 +49,13 @@ const deleteStorageItem = async (key: string): Promise<void> => {
 type UserRole = 'STUDENT' | 'OWNER';
 
 interface User {
-  id?: number | string;
+  id?: string | number;
   userId?: string;
   name: string;
   email: string;
   phone?: string;
   role: UserRole;
-  restaurantId?: number; // Only for OWNER role
+  restaurantId?: number | string; // Only for OWNER role
 }
 
 interface AuthContextType {

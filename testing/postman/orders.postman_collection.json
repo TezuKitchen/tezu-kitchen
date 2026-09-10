@@ -1,19 +1,208 @@
 {
   "info": {
     "name": "TezuKitchen - Orders Test Suite",
-    "description": "Automated test collection for Orders API endpoints (/api/v1/orders).",
+    "description": "Comprehensive automated test collection for Orders API endpoints (/api/v1/orders) covering order creation, retrieval by user and restaurant, status progression (PLACED -> ACCEPTED -> PREPARING -> OUT_FOR_DELIVERY -> DELIVERED), invalid transitions, and access control.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
     { "key": "studentToken", "value": "" },
     { "key": "ownerToken", "value": "" },
+    { "key": "otherStudentToken", "value": "" },
     { "key": "studentId", "value": "" },
+    { "key": "ownerId", "value": "" },
     { "key": "restaurantId", "value": "" },
     { "key": "menuItemId", "value": "" },
-    { "key": "orderId", "value": "" }
+    { "key": "orderId", "value": "" },
+    { "key": "nonExistentOrderId", "value": "e0000000-0000-0000-0000-000000000005" }
   ],
   "item": [
+    {
+      "name": "01. Setup - Register Student",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"studentToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"studentId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Order Student\",\n  \"email\": \"order_student_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543240\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"STUDENT\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "02. Setup - Register Owner",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"ownerToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"ownerId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Order Owner\",\n  \"email\": \"order_owner_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543241\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"OWNER\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "03. Setup - Register Other Student",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"otherStudentToken\", json.data.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Other Student\",\n  \"email\": \"order_other_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543242\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"STUDENT\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "04. Setup - Create Restaurant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"restaurantId\", json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Campus Biryani Hub\",\n  \"description\": \"Dum Biryani Specialists\",\n  \"location\": \"Engineering Block\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/restaurants", "host": ["{{baseUrl}}"], "path": ["restaurants"] }
+      }
+    },
+    {
+      "name": "05. Setup - Create Menu Item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"menuItemId\", json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"restaurantId\": \"{{restaurantId}}\",\n  \"name\": \"Chicken Biryani\",\n  \"description\": \"Hyderabadi style\",\n  \"price\": 180.00,\n  \"category\": \"Main Course\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/menu", "host": ["{{baseUrl}}"], "path": ["menu"] }
+      }
+    },
+    {
+      "name": "06. Create Order - Validation Error Empty Items (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(400);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"restaurantId\": \"{{restaurantId}}\",\n  \"deliveryAddress\": \"\",\n  \"items\": []\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+      }
+    },
     {
       "name": "Create Order",
       "event": [
@@ -94,6 +283,31 @@
       }
     },
     {
+      "name": "Get Order By ID - Not Found (Expect 404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/orders/{{nonExistentOrderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{nonExistentOrderId}}"] }
+      }
+    },
+    {
       "name": "Get Orders By User",
       "event": [
         {
@@ -153,6 +367,35 @@
         "method": "GET",
         "header": [],
         "url": { "raw": "{{baseUrl}}/orders/restaurant/{{restaurantId}}", "host": ["{{baseUrl}}"], "path": ["orders", "restaurant", "{{restaurantId}}"] }
+      }
+    },
+    {
+      "name": "Update Order Status - Forbidden Non-Owner (Expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{otherStudentToken}}", "type": "string" }]
+        },
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"ACCEPTED\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "status"] }
       }
     },
     {
@@ -285,6 +528,38 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "status"] }
+      }
+    },
+    {
+      "name": "Update Order Status - Invalid Transition (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(400);",
+              "pm.expect(json.message).to.include(\"Cannot transition\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"ACCEPTED\"\n}"
         },
         "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "status"] }
       }
