@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,7 +7,7 @@ services:
       POSTGRES_USER: ${DATABASE_USERNAME:-tezukitchen}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-changeme}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,12 +21,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      network: host
     container_name: tezukitchen-backend
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/tezukitchen
       DATABASE_USERNAME: ${DATABASE_USERNAME:-tezukitchen}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-changeme}
-      JWT_SECRET: ${JWT_SECRET:-your-256-bit-secret-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:-Y2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZQ==}
       SERVER_PORT: ${SERVER_PORT:-8080}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     ports:
