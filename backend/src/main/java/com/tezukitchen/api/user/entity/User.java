@@ -35,6 +35,9 @@ public class User {
     @Column(nullable = false, columnDefinition = "user_role")
     private UserRole role;
 
+    @Column(name = "push_token")
+    private String pushToken;
+
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant createdAt;
 

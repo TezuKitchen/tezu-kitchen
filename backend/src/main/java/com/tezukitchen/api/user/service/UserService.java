@@ -12,4 +12,5 @@ public interface UserService {
     UserResponse updateUser(UUID authenticatedUserId, UUID targetUserId, UpdateUserRequest request);
     Page<UserResponse> getAllUsers(Pageable pageable);
     void deleteUser(UUID authenticatedUserId, UUID targetUserId);
+    void updatePushToken(UUID userId, String pushToken);
 }

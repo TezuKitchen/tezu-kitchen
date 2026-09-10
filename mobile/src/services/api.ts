@@ -1,11 +1,15 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 // For physical device testing on local network, use the computer's local IP address
-const LOCAL_IP = '10.113.102.112';
+const LOCAL_IP = '10.184.225.61';
 
 const getBaseUrl = () => {
   if (__DEV__) {
+    if (Platform.OS === 'web') {
+      return 'http://localhost:8080/api/v1';
+    }
     return `http://${LOCAL_IP}:8080/api/v1`;
   }
   // Production URL
@@ -34,12 +38,24 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync('userToken');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Public endpoints do not need Authorization header (avoids browser CORS preflight issues)
+      const isPublicGet = config.method?.toLowerCase() === 'get' &&
+        (config.url?.includes('/restaurants') || config.url?.includes('/menu'));
+
+      if (!isPublicGet) {
+        let token: string | null = null;
+        if (Platform.OS === 'web') {
+          token = typeof window !== 'undefined' ? localStorage.getItem('userToken') : null;
+        } else {
+          token = await SecureStore.getItemAsync('userToken');
+        }
+
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (error) {
-      console.error('Error getting token from SecureStore:', error);
+      console.error('Error getting token from storage:', error);
     }
     return config;
   },
@@ -55,8 +71,15 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized (token expired, etc.)
     if (error.response && error.response.status === 401) {
       console.log('Token expired or unauthorized, forcing logout');
-      await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userData');
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('userToken');
+          localStorage.removeItem('userData');
+        }
+      } else {
+        await SecureStore.deleteItemAsync('userToken');
+        await SecureStore.deleteItemAsync('userData');
+      }
       // Notify AuthContext to reset state and redirect to login
       if (onUnauthorizedCallback) {
         onUnauthorizedCallback();

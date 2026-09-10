@@ -1,15 +1,59 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import api, { setOnUnauthorized } from '../services/api';
+
+const isWeb = Platform.OS === 'web';
+
+const getStorageItem = async (key: string): Promise<string | null> => {
+  try {
+    if (isWeb) {
+      return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    }
+    return await SecureStore.getItemAsync(key);
+  } catch (e) {
+    console.error(`Error reading ${key} from storage:`, e);
+    return null;
+  }
+};
+
+const setStorageItem = async (key: string, value: string): Promise<void> => {
+  try {
+    if (isWeb) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+      return;
+    }
+    await SecureStore.setItemAsync(key, value);
+  } catch (e) {
+    console.error(`Error writing ${key} to storage:`, e);
+  }
+};
+
+const deleteStorageItem = async (key: string): Promise<void> => {
+  try {
+    if (isWeb) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(key);
+      }
+      return;
+    }
+    await SecureStore.deleteItemAsync(key);
+  } catch (e) {
+    console.error(`Error deleting ${key} from storage:`, e);
+  }
+};
 
 type UserRole = 'STUDENT' | 'OWNER';
 
 interface User {
-  id: number;
+  id?: number | string;
+  userId?: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   role: UserRole;
   restaurantId?: number; // Only for OWNER role
 }
@@ -34,8 +78,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if user is already logged in on app startup
     const bootstrapAsync = async () => {
       try {
-        const userToken = await SecureStore.getItemAsync('userToken');
-        const userDataStr = await SecureStore.getItemAsync('userData');
+        const userToken = await getStorageItem('userToken');
+        const userDataStr = await getStorageItem('userData');
         
         if (userToken && userDataStr) {
           const userData = JSON.parse(userDataStr);
@@ -64,8 +108,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("LOGIN CALLED WITH TOKEN:", token ? "Exists" : "MISSING", "USERDATA:", userData);
       const safeToken = token || '';
-      await SecureStore.setItemAsync('userToken', safeToken);
-      await SecureStore.setItemAsync('userData', JSON.stringify(userData));
+      await setStorageItem('userToken', safeToken);
+      await setStorageItem('userData', JSON.stringify(userData));
       setUser(userData);
       setRole(userData.role);
     } catch (e) {
@@ -76,8 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userData');
+      await deleteStorageItem('userToken');
+      await deleteStorageItem('userData');
       setUser(null);
       setRole(null);
       router.replace('/(auth)/login');

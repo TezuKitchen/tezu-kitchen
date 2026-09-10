@@ -18,6 +18,7 @@ import com.tezukitchen.api.restaurant.entity.Restaurant;
 import com.tezukitchen.api.restaurant.repository.RestaurantRepository;
 import com.tezukitchen.api.user.entity.User;
 import com.tezukitchen.api.user.repository.UserRepository;
+import com.tezukitchen.api.notification.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -45,14 +46,18 @@ public class OrderServiceImpl implements OrderService {
             OrderStatus.OUT_FOR_DELIVERY, Set.of(OrderStatus.DELIVERED)
     );
 
+    private final NotificationService notificationService;
+
     public OrderServiceImpl(OrderRepository orderRepository,
                             UserRepository userRepository,
                             RestaurantRepository restaurantRepository,
-                            MenuItemRepository menuItemRepository) {
+                            MenuItemRepository menuItemRepository,
+                            NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.restaurantRepository = restaurantRepository;
         this.menuItemRepository = menuItemRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -113,6 +118,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderItems(orderItems);
 
         order = orderRepository.save(order);
+        notificationService.notifyNewOrder(order);
         return mapToResponse(order);
     }
 
@@ -191,6 +197,7 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(newStatus);
         order = orderRepository.save(order);
+        notificationService.notifyOrderStatusChanged(order);
         return mapToResponse(order);
     }
 

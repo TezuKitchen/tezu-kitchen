@@ -7,19 +7,41 @@ import {
   TouchableOpacity, 
   TextInput,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Banknote } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Banknote, AlertCircle } from 'lucide-react-native';
 import { colors, typography, spacing, layout } from '../src/theme';
 import { useCart } from '../src/context/CartContext';
 import api from '../src/services/api';
+
+const CAMPUS_LOCATIONS = [
+  'Patkai Hostel',
+  'Nilachal Hostel',
+  'Saraighat Hostel',
+  'Subansiri Hostel',
+  'Central Library',
+];
+
+const showAlert = (title: string, message: string, onOk?: () => void) => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') {
+      window.alert(`${title}: ${message}`);
+    }
+    if (onOk) onOk();
+  } else {
+    Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
+  }
+};
 
 export default function CartScreen() {
   const router = useRouter();
   const cart = useCart();
   const [address, setAddress] = useState('');
+  const [addressError, setAddressError] = useState('');
+  const [orderError, setOrderError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
@@ -29,21 +51,25 @@ export default function CartScreen() {
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
-      Alert.alert('Error', 'Please enter a delivery address');
+      setAddressError('Please enter your delivery address or pick a hostel below');
+      showAlert('Address Required', 'Please enter your room/hostel delivery address.');
       return;
     }
 
     if (!cart.restaurantId) {
-      Alert.alert('Error', 'Invalid restaurant');
+      setOrderError('Invalid restaurant. Please return to the menu and re-add your items.');
+      showAlert('Error', 'Invalid restaurant');
       return;
     }
 
     setIsPlacingOrder(true);
+    setAddressError('');
+    setOrderError('');
     try {
       // 1. Create order
       const orderPayload = {
         restaurantId: cart.restaurantId,
-        deliveryAddress: address,
+        deliveryAddress: address.trim(),
         items: cart.items.map(item => ({
           menuItemId: item.id,
           quantity: item.quantity
@@ -60,18 +86,20 @@ export default function CartScreen() {
       };
       await api.post('/payments', paymentPayload);
 
-      Alert.alert('Success', 'Order Placed Successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            cart.clearCart();
-            router.replace('/(student)/orders');
-          }
-        }
-      ]);
+      cart.clearCart();
+      showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
+        router.replace('/(student)/orders');
+      });
+
+      // Reliable navigation fallback for web
+      setTimeout(() => {
+        router.replace('/(student)/orders');
+      }, 500);
     } catch (error: any) {
       console.error('Order placement failed:', error);
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to place order. Please try again.');
+      const errorMsg = error?.response?.data?.message || 'Failed to place order. Please try again.';
+      setOrderError(errorMsg);
+      showAlert('Order Failed', errorMsg);
     } finally {
       setIsPlacingOrder(false);
     }
@@ -152,19 +180,51 @@ export default function CartScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <View style={styles.inputContainer}>
-            <MapPin size={20} color={colors.textMuted} style={styles.inputIcon} />
+          <Text style={styles.sectionTitle}>Delivery Address *</Text>
+          <View style={[styles.inputContainer, !!addressError && styles.inputContainerError]}>
+            <MapPin size={20} color={addressError ? '#EF4444' : colors.textMuted} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Enter hostel, room no. or landmark"
+              placeholder="Enter hostel, room no. or landmark (required)"
               value={address}
-              onChangeText={setAddress}
+              onChangeText={(text) => {
+                setAddress(text);
+                if (addressError) setAddressError('');
+              }}
               placeholderTextColor={colors.textLight}
               multiline
             />
           </View>
+          {!!addressError && (
+            <Text style={styles.errorText}>{addressError}</Text>
+          )}
+
+          {/* Quick campus location chips */}
+          <Text style={styles.chipHeader}>Or tap your hostel to select:</Text>
+          <View style={styles.chipContainer}>
+            {CAMPUS_LOCATIONS.map((loc) => (
+              <TouchableOpacity
+                key={loc}
+                style={[styles.chip, address.includes(loc) && styles.chipActive]}
+                onPress={() => {
+                  setAddress(loc);
+                  setAddressError('');
+                }}
+              >
+                <Text style={[styles.chipText, address.includes(loc) && styles.chipTextActive]}>
+                  {loc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+
+        {!!orderError && (
+          <View style={styles.orderErrorBanner}>
+            <AlertCircle size={18} color="#EF4444" />
+            <Text style={styles.orderErrorText}>{orderError}</Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
@@ -392,6 +452,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.background,
   },
+  inputContainerError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
   inputIcon: {
     marginRight: spacing.sm,
     marginTop: 2,
@@ -403,6 +467,63 @@ const styles = StyleSheet.create({
     color: colors.text,
     minHeight: 60,
     textAlignVertical: 'top',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.xs,
+    marginTop: spacing.xs,
+  },
+  chipHeader: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  chip: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: layout.radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FFF1EC',
+  },
+  chipText: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.xs,
+    color: colors.text,
+  },
+  chipTextActive: {
+    color: colors.primary,
+    fontFamily: typography.fonts.bodyMedium,
+  },
+  orderErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: layout.radius.md,
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  orderErrorText: {
+    flex: 1,
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.sm,
+    color: '#B91C1C',
   },
   paymentMethods: {
     flexDirection: 'row',

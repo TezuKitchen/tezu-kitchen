@@ -93,7 +93,11 @@ export default function LoginScreen() {
         }
       }
       
-      Alert.alert('Authentication Failed', errorMessage);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(`Authentication Failed:\n${errorMessage}`);
+      } else {
+        Alert.alert('Authentication Failed', errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

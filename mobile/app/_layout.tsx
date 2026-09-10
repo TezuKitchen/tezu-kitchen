@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 import { CartProvider } from '../src/context/CartContext';
+import { NotificationProvider } from '../src/context/NotificationContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -42,11 +43,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <CartProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(student)" options={{ headerShown: false }} />
-            <Stack.Screen name="(owner)" options={{ headerShown: false }} />
-          </Stack>
+          <NotificationProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(student)" options={{ headerShown: false }} />
+              <Stack.Screen name="(owner)" options={{ headerShown: false }} />
+              <Stack.Screen name="cart" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
+            </Stack>
+          </NotificationProvider>
         </CartProvider>
       </AuthProvider>
     </SafeAreaProvider>

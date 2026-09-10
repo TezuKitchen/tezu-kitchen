@@ -1,6 +1,7 @@
 package com.tezukitchen.api.user.controller;
 
 import com.tezukitchen.api.common.response.ApiResponse;
+import com.tezukitchen.api.user.dto.request.UpdatePushTokenRequest;
 import com.tezukitchen.api.user.dto.request.UpdateUserRequest;
 import com.tezukitchen.api.user.dto.response.UserResponse;
 import com.tezukitchen.api.user.service.UserService;
@@ -50,6 +51,14 @@ public class UserController {
         UUID authenticatedUserId = getAuthenticatedUserId();
         userService.deleteUser(authenticatedUserId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/push-token")
+    public ResponseEntity<ApiResponse<Void>> updatePushToken(
+            @Valid @RequestBody UpdatePushTokenRequest request) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        userService.updatePushToken(authenticatedUserId, request.getPushToken());
+        return ResponseEntity.ok(ApiResponse.success("Push token updated successfully", null));
     }
 
     private UUID getAuthenticatedUserId() {

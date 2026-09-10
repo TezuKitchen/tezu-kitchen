@@ -36,14 +36,19 @@ export default function OwnerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'NEW' | 'ACTIVE' | 'DONE'>('NEW');
 
+  const effectiveUserId = user?.userId || (user as any)?.id;
+
   const fetchRestaurantAndOrders = useCallback(async () => {
     try {
-      if (!user?.userId) return;
+      if (!effectiveUserId) {
+        setLoading(false);
+        return;
+      }
       
       let currentRestaurantId = restaurantId;
       if (!currentRestaurantId) {
-        const resRes = await api.get(`/restaurants/owner/${user.userId}`);
-        const restaurants = resRes.data.data;
+        const resRes = await api.get(`/restaurants/owner/${effectiveUserId}`);
+        const restaurants = resRes.data?.data;
         if (restaurants && restaurants.length > 0) {
           currentRestaurantId = restaurants[0].id;
           setRestaurantId(currentRestaurantId);
@@ -55,16 +60,15 @@ export default function OwnerDashboard() {
 
       if (currentRestaurantId) {
         const ordersRes = await api.get(`/orders/restaurant/${currentRestaurantId}?size=50&sort=placedAt,desc`);
-        setOrders(ordersRes.data.data.content || []);
+        setOrders(ordersRes.data?.data?.content || []);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      Alert.alert('Error', 'Failed to load orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.userId, restaurantId]);
+  }, [effectiveUserId, restaurantId]);
 
   useEffect(() => {
     fetchRestaurantAndOrders();
