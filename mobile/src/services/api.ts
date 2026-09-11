@@ -27,20 +27,17 @@ const getBaseUrl = () => {
     if (hostUri) {
       const host = hostUri.split(':')[0];
       // Do not use tunnel hostnames (e.g. *.exp.direct or *.ngrok*) because Expo tunnel only proxies port 8081 (Metro), not port 8080 (Backend)
-      const isTunnel = host.includes('exp.direct') || host.includes('ngrok');
-      if (host && !isTunnel) {
-        // If host resolves to localhost/127.0.0.1 on Android, redirect to 10.0.2.2 for Android emulator
-        if (Platform.OS === 'android' && (host === 'localhost' || host === '127.0.0.1')) {
-          return 'http://10.0.2.2:8080/api/v1';
-        }
-        return `http://${host}:8080/api/v1`;
-      }
+      const ip = hostUri.split(':')[0];
+      return `http://${ip}:8080/api/v1`;
     }
-
-    // 4. Fallback for physical devices when debuggerHost is unavailable
-    return `http://${DEFAULT_LOCAL_IP}:8080/api/v1`;
+    
+    // Fallbacks if hostUri is not available (e.g. running outside of Expo Go)
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:8080/api/v1'; // Android emulator localhost
+    }
+    return 'http://localhost:8080/api/v1'; // iOS simulator localhost
   }
-
+  
   // Production URL
   return 'https://api.tezukitchen.com/api/v1';
 };
