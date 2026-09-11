@@ -9,9 +9,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.tezukitchenmobile"
     },
     "android": {
+      "package": "com.anonymous.tezukitchenmobile"
     },
     "scheme": "tezukitchen",
     "experiments": {
