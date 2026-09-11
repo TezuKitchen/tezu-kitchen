@@ -32,6 +32,10 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
 
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_Tai04XqY8wEdl3}
+    key-secret: ${RAZORPAY_KEY_SECRET:2kNIUiONJbjDn7PGstqjEYyN}
+
 # API Documentation
 springdoc:
   api-docs:

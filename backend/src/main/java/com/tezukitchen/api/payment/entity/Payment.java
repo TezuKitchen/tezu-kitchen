@@ -43,6 +43,12 @@ public class Payment {
     @Column(name = "paid_at", columnDefinition = "TIMESTAMPTZ")
     private Instant paidAt;
 
+    @Column(name = "razorpay_order_id")
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
+
     @PrePersist
     protected void onCreate() {
         if (status == null) status = PaymentStatus.PENDING;

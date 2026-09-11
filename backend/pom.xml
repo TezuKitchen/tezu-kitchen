@@ -83,6 +83,13 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Razorpay Payment Gateway -->
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.8</version>
+        </dependency>
+
         <!-- Developer Tools -->
         <dependency>
             <groupId>org.projectlombok</groupId>

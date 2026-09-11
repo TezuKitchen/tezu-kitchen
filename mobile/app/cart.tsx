@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Banknote, AlertCircle } from 'lucide-react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import { colors, typography, spacing, layout } from '../src/theme';
 import { useCart } from '../src/context/CartContext';
 import api from '../src/services/api';
@@ -42,7 +43,7 @@ export default function CartScreen() {
   const [address, setAddress] = useState('');
   const [addressError, setAddressError] = useState('');
   const [orderError, setOrderError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const deliveryFee = cart.totalAmount > 0 ? 30 : 0;
@@ -80,21 +81,65 @@ export default function CartScreen() {
       const orderId = orderResponse.data.data.id;
 
       // 2. Process payment
-      const paymentPayload = {
-        orderId,
-        method: paymentMethod
-      };
-      await api.post('/payments', paymentPayload);
+      if (paymentMethod === 'ONLINE') {
+        const razorpayResponse = await api.post('/payments/razorpay/create-order', { orderId });
+        const razorpayData = razorpayResponse.data.data;
+        
+        const options = {
+          description: `Order from ${cart.restaurantName}`,
+          currency: razorpayData.currency,
+          key: razorpayData.keyId,
+          amount: razorpayData.amount, // already in paise from backend
+          name: 'TezuKitchen',
+          order_id: razorpayData.razorpayOrderId,
+          prefill: {
+            email: 'student@tezu.ac.in',
+            name: 'TezuKitchen Student',
+          },
+          theme: { color: '#FF5722' },
+        };
 
-      cart.clearCart();
-      showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
-        router.replace('/(student)/orders');
-      });
+        try {
+          const data = await RazorpayCheckout.open(options);
+          
+          await api.post('/payments/razorpay/verify', {
+            razorpayOrderId: data.razorpay_order_id,
+            razorpayPaymentId: data.razorpay_payment_id,
+            razorpaySignature: data.razorpay_signature
+          });
+          
+          cart.clearCart();
+          showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
+            router.replace('/(student)/orders');
+          });
+          
+          setTimeout(() => {
+            router.replace('/(student)/orders');
+          }, 500);
+        } catch (error: any) {
+          console.error('Razorpay checkout failed or dismissed:', error);
+          const errorMsg = typeof error === 'string' ? error : error?.description || 'Payment cancelled or failed. Please try again.';
+          setOrderError(errorMsg);
+          showAlert('Payment Failed', errorMsg);
+          // Don't clear cart so they can retry
+        }
+      } else {
+        const paymentPayload = {
+          orderId,
+          method: paymentMethod
+        };
+        await api.post('/payments', paymentPayload);
 
-      // Reliable navigation fallback for web
-      setTimeout(() => {
-        router.replace('/(student)/orders');
-      }, 500);
+        cart.clearCart();
+        showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
+          router.replace('/(student)/orders');
+        });
+
+        // Reliable navigation fallback for web
+        setTimeout(() => {
+          router.replace('/(student)/orders');
+        }, 500);
+      }
     } catch (error: any) {
       console.error('Order placement failed:', error);
       const errorMsg = error?.response?.data?.message || 'Failed to place order. Please try again.';
@@ -240,12 +285,12 @@ export default function CartScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.paymentMethodCard, paymentMethod === 'UPI' && styles.paymentMethodCardActive]}
-              onPress={() => setPaymentMethod('UPI')}
+              style={[styles.paymentMethodCard, paymentMethod === 'ONLINE' && styles.paymentMethodCardActive]}
+              onPress={() => setPaymentMethod('ONLINE')}
             >
-              <CreditCard size={24} color={paymentMethod === 'UPI' ? colors.primary : colors.textMuted} />
-              <Text style={[styles.paymentMethodText, paymentMethod === 'UPI' && styles.paymentMethodTextActive]}>
-                UPI Online
+              <CreditCard size={24} color={paymentMethod === 'ONLINE' ? colors.primary : colors.textMuted} />
+              <Text style={[styles.paymentMethodText, paymentMethod === 'ONLINE' && styles.paymentMethodTextActive]}>
+                Pay Online
               </Text>
             </TouchableOpacity>
           </View>
