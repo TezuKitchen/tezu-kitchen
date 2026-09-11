@@ -55,7 +55,7 @@ public class RazorpayService {
         com.tezukitchen.api.order.entity.Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + request.getOrderId()));
 
-        if (!order.getStudent().getId().equals(authenticatedUserId)) {
+        if (!order.getUser().getId().equals(authenticatedUserId)) {
             throw new ForbiddenException("You are not authorized to pay for this order");
         }
 
@@ -110,7 +110,7 @@ public class RazorpayService {
         Payment payment = paymentRepository.findByRazorpayOrderId(request.getRazorpayOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found for Razorpay Order ID: " + request.getRazorpayOrderId()));
 
-        if (!payment.getOrder().getStudent().getId().equals(authenticatedUserId)) {
+        if (!payment.getOrder().getUser().getId().equals(authenticatedUserId)) {
             throw new ForbiddenException("You are not authorized to verify this payment");
         }
 
