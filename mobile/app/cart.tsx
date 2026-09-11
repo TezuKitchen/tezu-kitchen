@@ -8,12 +8,13 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Platform
+  Platform,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Banknote, AlertCircle } from 'lucide-react-native';
-import RazorpayCheckout from 'react-native-razorpay';
+import { WebView } from 'react-native-webview';
 import { colors, typography, spacing, layout } from '../src/theme';
 import { useCart } from '../src/context/CartContext';
 import api from '../src/services/api';
@@ -45,10 +46,46 @@ export default function CartScreen() {
   const [orderError, setOrderError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [razorpayHtml, setRazorpayHtml] = useState<string | null>(null);
 
   const deliveryFee = cart.totalAmount > 0 ? 30 : 0;
   const taxesAndCharges = cart.totalAmount * 0.05;
   const grandTotal = cart.totalAmount + deliveryFee + taxesAndCharges;
+
+  const handleWebViewMessage = async (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'success') {
+        setIsPlacingOrder(true);
+        await api.post('/payments/razorpay/verify', {
+          razorpayOrderId: data.razorpay_order_id,
+          razorpayPaymentId: data.razorpay_payment_id,
+          razorpaySignature: data.razorpay_signature
+        });
+        
+        setRazorpayHtml(null);
+        cart.clearCart();
+        showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
+          router.replace('/(student)/orders');
+        });
+        
+        setTimeout(() => {
+          router.replace('/(student)/orders');
+        }, 500);
+      } else if (data.type === 'dismiss' || data.type === 'error') {
+        setRazorpayHtml(null);
+        setOrderError(data.error?.description || 'Payment cancelled or failed. Please try again.');
+        showAlert('Payment Failed', data.error?.description || 'Payment cancelled or failed.');
+        setIsPlacingOrder(false);
+      }
+    } catch (error: any) {
+      console.error('Payment verification failed:', error);
+      setRazorpayHtml(null);
+      setOrderError(error?.response?.data?.message || 'Payment verification failed.');
+      showAlert('Payment Failed', error?.response?.data?.message || 'Payment verification failed.');
+      setIsPlacingOrder(false);
+    }
+  };
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
@@ -99,30 +136,43 @@ export default function CartScreen() {
           theme: { color: '#FF5722' },
         };
 
-        try {
-          const data = await RazorpayCheckout.open(options);
-          
-          await api.post('/payments/razorpay/verify', {
-            razorpayOrderId: data.razorpay_order_id,
-            razorpayPaymentId: data.razorpay_payment_id,
-            razorpaySignature: data.razorpay_signature
-          });
-          
-          cart.clearCart();
-          showAlert('Order Placed!', 'Your order has been placed successfully!', () => {
-            router.replace('/(student)/orders');
-          });
-          
-          setTimeout(() => {
-            router.replace('/(student)/orders');
-          }, 500);
-        } catch (error: any) {
-          console.error('Razorpay checkout failed or dismissed:', error);
-          const errorMsg = typeof error === 'string' ? error : error?.description || 'Payment cancelled or failed. Please try again.';
-          setOrderError(errorMsg);
-          showAlert('Payment Failed', errorMsg);
-          // Don't clear cart so they can retry
-        }
+        const html = `
+          <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+            </head>
+            <body style="background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+              <p style="font-family: sans-serif; color: #666;">Loading secure payment gateway...</p>
+              <script>
+                var options = ${JSON.stringify(options)};
+                options.handler = function (response){
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'success',
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_signature: response.razorpay_signature
+                    }));
+                };
+                options.modal = {
+                    ondismiss: function() {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dismiss' }));
+                    }
+                };
+                var rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (response){
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'error',
+                      error: response.error
+                    }));
+                });
+                rzp.open();
+              </script>
+            </body>
+          </html>
+        `;
+        setRazorpayHtml(html);
+        return; // Wait for WebView to handle the rest
       } else {
         const paymentPayload = {
           orderId,
@@ -335,6 +385,21 @@ export default function CartScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      <Modal visible={!!razorpayHtml} animationType="slide" onRequestClose={() => setRazorpayHtml(null)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#f4f4f4' }}>
+          {razorpayHtml && (
+            <WebView
+              originWhitelist={['*']}
+              source={{ html: razorpayHtml }}
+              onMessage={handleWebViewMessage}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              style={{ flex: 1 }}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
