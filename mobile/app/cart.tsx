@@ -122,24 +122,24 @@ export default function CartScreen() {
         const razorpayResponse = await api.post('/payments/razorpay/create-order', { orderId });
         const razorpayData = razorpayResponse.data.data;
         
-        // Developer Bypass for broken Razorpay Test Accounts
-        if (address === 'DEV_SUCCESS') {
-          await api.post('/payments/razorpay/verify', {
-            razorpayOrderId: razorpayData.razorpayOrderId,
-            razorpayPaymentId: 'pay_dev_mock123',
-            razorpaySignature: 'DEV_BYPASS'
-          });
-          
-          cart.clearCart();
-          showAlert('Order Placed!', 'Your order has been placed successfully! (Bypassed Gateway)', () => {
-            router.replace('/(student)/orders');
-          });
-          
-          setTimeout(() => {
-            router.replace('/(student)/orders');
-          }, 500);
-          return;
-        }
+        // // Developer Bypass for broken Razorpay Test Accounts
+        // if (address === 'DEV_SUCCESS') {
+        //   await api.post('/payments/razorpay/verify', {
+        //     razorpayOrderId: razorpayData.razorpayOrderId,
+        //     razorpayPaymentId: 'pay_dev_mock123',
+        //     razorpaySignature: 'DEV_BYPASS'
+        //   });
+        //   
+        //   cart.clearCart();
+        //   showAlert('Order Placed!', 'Your order has been placed successfully! (Bypassed Gateway)', () => {
+        //     router.replace('/(student)/orders');
+        //   });
+        //   
+        //   setTimeout(() => {
+        //     router.replace('/(student)/orders');
+        //   }, 500);
+        //   return;
+        // }
 
         const options = {
           description: `Order from ${cart.restaurantName}`,
