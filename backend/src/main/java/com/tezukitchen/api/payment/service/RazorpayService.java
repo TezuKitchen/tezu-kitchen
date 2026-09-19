@@ -43,6 +43,9 @@ public class RazorpayService {
     @Value("${app.razorpay.key-secret}")
     private String keySecret;
 
+    @Value("${app.razorpay.webhook-secret:}")
+    private String webhookSecret;
+
     private RazorpayClient razorpayClient;
 
     @PostConstruct
@@ -114,6 +117,20 @@ public class RazorpayService {
             throw new ForbiddenException("You are not authorized to verify this payment");
         }
 
+        // Idempotency check: if already SUCCESS with the same payment ID, just return the response
+        if (payment.getStatus() == PaymentStatus.SUCCESS && 
+            request.getRazorpayPaymentId().equals(payment.getRazorpayPaymentId())) {
+            return PaymentResponse.builder()
+                    .id(payment.getId())
+                    .orderId(payment.getOrder().getId())
+                    .amount(payment.getAmount())
+                    .method(payment.getMethod().name())
+                    .status(payment.getStatus().name())
+                    .transactionRef(payment.getTransactionRef())
+                    .paidAt(payment.getPaidAt())
+                    .build();
+        }
+
         try {
             String data = request.getRazorpayOrderId() + "|" + request.getRazorpayPaymentId();
             Mac mac = Mac.getInstance("HmacSHA256");
@@ -152,6 +169,40 @@ public class RazorpayService {
                 throw (BadRequestException) e;
             }
             throw new RuntimeException("Error verifying payment signature", e);
+        }
+    }
+
+    @Transactional
+    public void processWebhook(String payload, String signature) {
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            throw new BadRequestException("Webhook secret is not configured");
+        }
+        try {
+            boolean isValid = com.razorpay.Utils.verifyWebhookSignature(payload, signature, webhookSecret);
+            if (!isValid) {
+                throw new BadRequestException("Invalid webhook signature");
+            }
+
+            JSONObject json = new JSONObject(payload);
+            String event = json.optString("event");
+
+            if ("order.paid".equals(event) || "payment.captured".equals(event)) {
+                JSONObject entity = json.getJSONObject("payload").getJSONObject("payment").getJSONObject("entity");
+                String razorpayOrderId = entity.getString("order_id");
+                String razorpayPaymentId = entity.getString("id");
+
+                paymentRepository.findByRazorpayOrderId(razorpayOrderId).ifPresent(payment -> {
+                    if (payment.getStatus() != PaymentStatus.SUCCESS) {
+                        payment.setStatus(PaymentStatus.SUCCESS);
+                        payment.setRazorpayPaymentId(razorpayPaymentId);
+                        payment.setTransactionRef(signature);
+                        payment.setPaidAt(Instant.now());
+                        paymentRepository.save(payment);
+                    }
+                });
+            }
+        } catch (RazorpayException e) {
+            throw new BadRequestException("Webhook verification failed: " + e.getMessage());
         }
     }
 }

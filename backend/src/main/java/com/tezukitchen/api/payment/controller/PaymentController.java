@@ -69,6 +69,14 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("Payment verified successfully", response));
     }
 
+    @PostMapping("/razorpay/webhook")
+    public ResponseEntity<Void> handleRazorpayWebhook(
+            @RequestHeader("X-Razorpay-Signature") String signature,
+            @RequestBody String payload) {
+        razorpayService.processWebhook(payload, signature);
+        return ResponseEntity.ok().build();
+    }
+
     private UUID getAuthenticatedUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return (UUID) authentication.getPrincipal();

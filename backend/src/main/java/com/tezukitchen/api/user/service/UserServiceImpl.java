@@ -40,6 +40,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", targetUserId));
         user.setName(request.getName());
         user.setPhone(request.getPhone());
+        user.setAvatarUrl(request.getAvatarUrl());
+        if (request.getSavedAddresses() != null) {
+            user.setSavedAddresses(request.getSavedAddresses());
+        }
+        if (request.getExpoPushToken() != null) {
+            user.setExpoPushToken(request.getExpoPushToken());
+        }
         user = userRepository.save(user);
         return mapToResponse(user);
     }
@@ -63,10 +70,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updatePushToken(UUID userId, String pushToken) {
+    public void updatePushToken(UUID userId, String expoPushToken) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        user.setPushToken(pushToken);
+        user.setExpoPushToken(expoPushToken);
         userRepository.save(user);
     }
 
@@ -77,6 +84,8 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .role(user.getRole().name())
+                .avatarUrl(user.getAvatarUrl())
+                .savedAddresses(user.getSavedAddresses())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

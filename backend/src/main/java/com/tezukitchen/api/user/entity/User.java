@@ -35,8 +35,17 @@ public class User {
     @Column(nullable = false, columnDefinition = "user_role")
     private UserRole role;
 
-    @Column(name = "push_token")
-    private String pushToken;
+    @Column(name = "expo_push_token")
+    private String expoPushToken;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @ElementCollection
+    @CollectionTable(name = "user_addresses", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "address")
+    @Builder.Default
+    private java.util.List<String> savedAddresses = new java.util.ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant createdAt;

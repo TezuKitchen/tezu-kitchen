@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public class NotificationService {
+public class PushNotificationService {
 
-    private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+    private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
     private static final String EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
     private final RestTemplate restTemplate;
 
-    public NotificationService() {
+    public PushNotificationService() {
         this.restTemplate = new RestTemplate();
     }
 
@@ -29,8 +29,8 @@ public class NotificationService {
                 return;
             }
             User owner = order.getRestaurant().getOwner();
-            String pushToken = owner.getPushToken();
-            if (pushToken == null || pushToken.isBlank()) {
+            String expoPushToken = owner.getExpoPushToken();
+            if (expoPushToken == null || expoPushToken.isBlank()) {
                 log.info("Owner {} has no registered push token; skipping notification", owner.getEmail());
                 return;
             }
@@ -43,7 +43,7 @@ public class NotificationService {
             data.put("orderId", order.getId().toString());
             data.put("type", "NEW_ORDER");
 
-            CompletableFuture.runAsync(() -> sendPushNotification(pushToken, title, body, data));
+            CompletableFuture.runAsync(() -> sendPushNotification(expoPushToken, title, body, data));
         } catch (Exception e) {
             log.warn("Error preparing new order notification: {}", e.getMessage());
         }
@@ -55,8 +55,8 @@ public class NotificationService {
                 return;
             }
             User student = order.getUser();
-            String pushToken = student.getPushToken();
-            if (pushToken == null || pushToken.isBlank()) {
+            String expoPushToken = student.getExpoPushToken();
+            if (expoPushToken == null || expoPushToken.isBlank()) {
                 log.info("Student {} has no registered push token; skipping notification", student.getEmail());
                 return;
             }
@@ -72,7 +72,7 @@ public class NotificationService {
             data.put("type", "STATUS_UPDATE");
             data.put("status", statusStr);
 
-            CompletableFuture.runAsync(() -> sendPushNotification(pushToken, title, body, data));
+            CompletableFuture.runAsync(() -> sendPushNotification(expoPushToken, title, body, data));
         } catch (Exception e) {
             log.warn("Error preparing order status notification: {}", e.getMessage());
         }
@@ -94,10 +94,10 @@ public class NotificationService {
         return status.toLowerCase().replace('_', ' ');
     }
 
-    private void sendPushNotification(String pushToken, String title, String body, Map<String, Object> data) {
+    private void sendPushNotification(String expoPushToken, String title, String body, Map<String, Object> data) {
         try {
             Map<String, Object> payload = new HashMap<>();
-            payload.put("to", pushToken);
+            payload.put("to", expoPushToken);
             payload.put("title", title);
             payload.put("body", body);
             payload.put("sound", "default");
@@ -105,9 +105,9 @@ public class NotificationService {
             payload.put("data", data);
 
             restTemplate.postForEntity(EXPO_PUSH_URL, payload, String.class);
-            log.info("Dispatched Expo push notification to token: {}", pushToken);
+            log.info("Dispatched Expo push notification to token: {}", expoPushToken);
         } catch (Exception e) {
-            log.warn("Failed to dispatch push notification to {}: {}", pushToken, e.getMessage());
+            log.warn("Failed to dispatch push notification to {}: {}", expoPushToken, e.getMessage());
         }
     }
 }

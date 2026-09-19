@@ -47,10 +47,42 @@ export default function CartScreen() {
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [razorpayHtml, setRazorpayHtml] = useState<string | null>(null);
+  
+  const [promoCode, setPromoCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoError, setPromoError] = useState('');
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+
+  React.useEffect(() => {
+    api.get('/users/profile')
+      .then(res => {
+         if (res.data?.data?.savedAddresses) {
+           setSavedAddresses(res.data.data.savedAddresses);
+         }
+      })
+      .catch(e => console.error('Failed to load saved addresses', e));
+  }, []);
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsApplyingPromo(true);
+    setPromoError('');
+    try {
+      // Expecting { data: { data: 50 } } or similar (discountAmount)
+      const response = await api.get(`/promotions/validate?code=${promoCode}&orderAmount=${cart.totalAmount}`);
+      // Based on typical spring boot api response
+      setDiscountAmount(response.data.data || 0);
+    } catch (err: any) {
+      setPromoError(err?.response?.data?.message || 'Invalid promo code');
+      setDiscountAmount(0);
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
 
   const deliveryFee = cart.totalAmount > 0 ? 30 : 0;
   const taxesAndCharges = cart.totalAmount * 0.05;
-  const grandTotal = cart.totalAmount + deliveryFee + taxesAndCharges;
+  const grandTotal = Math.max(0, cart.totalAmount + deliveryFee + taxesAndCharges - discountAmount);
 
   const handleWebViewMessage = async (event: any) => {
     try {
@@ -314,9 +346,9 @@ export default function CartScreen() {
           )}
 
           {/* Quick campus location chips */}
-          <Text style={styles.chipHeader}>Or tap your hostel to select:</Text>
+          <Text style={styles.chipHeader}>Or select a saved address:</Text>
           <View style={styles.chipContainer}>
-            {CAMPUS_LOCATIONS.map((loc) => (
+            {[...savedAddresses, ...CAMPUS_LOCATIONS].map((loc) => (
               <TouchableOpacity
                 key={loc}
                 style={[styles.chip, address.includes(loc) && styles.chipActive]}
@@ -331,6 +363,40 @@ export default function CartScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Have a Promo Code?</Text>
+          <View style={styles.promoContainer}>
+            <TextInput
+              style={styles.promoInput}
+              placeholder="Enter code (e.g. TEZU50)"
+              value={promoCode}
+              onChangeText={(text) => {
+                setPromoCode(text.toUpperCase());
+                setPromoError('');
+              }}
+              placeholderTextColor={colors.textLight}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity 
+              style={[styles.promoButton, (!promoCode || isApplyingPromo) && styles.promoButtonDisabled]}
+              onPress={handleApplyPromo}
+              disabled={!promoCode || isApplyingPromo}
+            >
+              {isApplyingPromo ? (
+                <ActivityIndicator color={colors.surface} size="small" />
+              ) : (
+                <Text style={styles.promoButtonText}>Apply</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          {!!promoError && (
+            <Text style={[styles.errorText, { marginTop: spacing.xs }]}>{promoError}</Text>
+          )}
+          {discountAmount > 0 && (
+            <Text style={styles.promoSuccessText}>Promo code applied! Saved ₹{discountAmount}</Text>
+          )}
         </View>
 
         {!!orderError && (
@@ -365,22 +431,28 @@ export default function CartScreen() {
           </View>
         </View>
 
-        <View style={styles.billContainer}>
-          <Text style={styles.sectionTitle}>Bill Details</Text>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Item Total</Text>
-            <Text style={styles.billValue}>₹{cart.totalAmount}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bill Summary</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Item Total</Text>
+            <Text style={styles.summaryValue}>₹{cart.totalAmount}</Text>
           </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Delivery Fee</Text>
-            <Text style={styles.billValue}>₹{deliveryFee}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Delivery Fee</Text>
+            <Text style={styles.summaryValue}>₹{deliveryFee}</Text>
           </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Taxes & Charges</Text>
-            <Text style={styles.billValue}>₹{taxesAndCharges.toFixed(2)}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Taxes & Charges</Text>
+            <Text style={styles.summaryValue}>₹{taxesAndCharges.toFixed(2)}</Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.billRow}>
+          {discountAmount > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: colors.success }]}>Discount</Text>
+              <Text style={[styles.summaryValue, { color: colors.success }]}>-₹{discountAmount}</Text>
+            </View>
+          )}
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryRow}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>
             <Text style={styles.grandTotalValue}>₹{grandTotal.toFixed(2)}</Text>
           </View>
@@ -717,8 +789,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   footer: {
-    backgroundColor: colors.surface,
     padding: spacing.lg,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
     ...layout.shadows.md,
@@ -735,7 +807,6 @@ const styles = StyleSheet.create({
   },
   placeOrderButtonDisabled: {
     opacity: 0.7,
-    justifyContent: 'center',
   },
   placeOrderAmount: {
     color: colors.surface,
@@ -746,5 +817,64 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.md,
+  },
+  promoContainer: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  promoInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: layout.radius.md,
+    paddingHorizontal: spacing.md,
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.sm,
+    color: colors.text,
+    height: 48,
+  },
+  promoButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    borderRadius: layout.radius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 48,
+  },
+  promoButtonDisabled: {
+    backgroundColor: colors.borderSubtle,
+  },
+  promoButtonText: {
+    color: colors.surface,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.sm,
+  },
+  promoSuccessText: {
+    color: colors.success,
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.sm,
+    marginTop: spacing.xs,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  summaryLabel: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+  },
+  summaryValue: {
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.sm,
+    color: colors.text,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: colors.borderSubtle,
+    marginVertical: spacing.md,
   },
 });

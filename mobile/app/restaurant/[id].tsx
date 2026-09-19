@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, Clock, ShoppingBag } from 'lucide-react-native';
+import { ArrowLeft, Star, Clock, ShoppingBag, Heart } from 'lucide-react-native';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
 import { useCart } from '../../src/context/CartContext';
+import { useAuth } from '../../src/context/AuthContext';
 
 interface RestaurantDetails {
   id: string;
@@ -21,26 +22,45 @@ interface RestaurantDetails {
   description: string;
   location: string;
   open: boolean;
+  averageRating?: number;
+  reviewCount?: number;
 }
 
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const cart = useCart();
+  const { user } = useAuth();
   
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [restaurant, setRestaurant] = useState<RestaurantDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [toggleFavLoading, setToggleFavLoading] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [menuRes, restRes] = await Promise.all([
+        const [menuRes, restRes, reviewsRes] = await Promise.all([
           api.get(`/menu/restaurant/${id}/available`),
-          api.get(`/restaurants/${id}`)
+          api.get(`/restaurants/${id}`),
+          api.get(`/reviews/restaurant/${id}`).catch(() => ({ data: { data: { content: [] } } }))
         ]);
         setMenuItems(menuRes.data.data);
         setRestaurant(restRes.data.data);
+        setReviews(reviewsRes.data.data.content || []);
+
+
+        if (user) {
+          try {
+            const favRes = await api.get('/favorites');
+            const favs = favRes.data.data || [];
+            setIsFavorite(favs.some((fav: any) => fav.id === id));
+          } catch (e) {
+            console.error('Failed to fetch favorites', e);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -50,7 +70,22 @@ export default function RestaurantMenuScreen() {
     if (id) {
       fetchData();
     }
-  }, [id]);
+  }, [id, user]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      return;
+    }
+    setToggleFavLoading(true);
+    try {
+      await api.post(`/favorites/toggle?restaurantId=${id}`);
+      setIsFavorite(!isFavorite);
+    } catch (e) {
+      console.error('Failed to toggle favorite', e);
+    } finally {
+      setToggleFavLoading(false);
+    }
+  };
 
   const renderHeader = () => (
     <View>
@@ -61,6 +96,14 @@ export default function RestaurantMenuScreen() {
         >
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.favoriteButton}
+          onPress={toggleFavorite}
+          disabled={toggleFavLoading}
+        >
+          <Heart size={24} color={isFavorite ? colors.primary : colors.text} fill={isFavorite ? colors.primary : 'transparent'} />
+        </TouchableOpacity>
       </View>
       
       <View style={styles.restaurantInfo}>
@@ -70,7 +113,10 @@ export default function RestaurantMenuScreen() {
         <View style={styles.metaRow}>
           <View style={styles.ratingBadge}>
             <Star size={12} color={colors.surface} fill={colors.surface} />
-            <Text style={styles.ratingText}>4.5 (1.2k ratings)</Text>
+            <Text style={styles.ratingText}>
+              {restaurant?.averageRating ? restaurant.averageRating.toFixed(1) : 'New'} 
+              {restaurant?.reviewCount ? ` (${restaurant.reviewCount})` : ''}
+            </Text>
           </View>
           <View style={styles.metaDivider} />
           <View style={styles.timeBadge}>
@@ -81,6 +127,40 @@ export default function RestaurantMenuScreen() {
       </View>
       <View style={styles.divider} />
       <Text style={styles.menuTitle}>Recommended</Text>
+    </View>
+  );
+
+  const renderFooter = () => (
+    <View style={styles.reviewsSection}>
+      <View style={styles.divider} />
+      <View style={styles.reviewsHeader}>
+        <Text style={styles.menuTitle}>Reviews</Text>
+        {user && (
+          <TouchableOpacity onPress={() => router.push(`/review?restaurantId=${id}`)}>
+            <Text style={styles.leaveReviewText}>Leave a Review</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {reviews.length === 0 ? (
+        <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to review!</Text>
+      ) : (
+        reviews.map((review, index) => (
+          <View key={review.id || index} style={styles.reviewCard}>
+            <View style={styles.reviewHeader}>
+              <View style={styles.reviewRating}>
+                <Star size={14} color={colors.primary} fill={colors.primary} />
+                <Text style={styles.reviewRatingText}>{review.rating}</Text>
+              </View>
+              <Text style={styles.reviewDate}>
+                {new Date(review.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+            {review.comment && (
+              <Text style={styles.reviewComment}>{review.comment}</Text>
+            )}
+          </View>
+        ))
+      )}
     </View>
   );
 
@@ -102,6 +182,7 @@ export default function RestaurantMenuScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             ListHeaderComponent={renderHeader}
+            ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
               <MenuItemCard 
                 item={item} 
@@ -164,6 +245,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.xl,
     left: spacing.lg,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...layout.shadows.sm,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: spacing.xl,
+    right: spacing.lg,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -260,11 +353,11 @@ const styles = StyleSheet.create({
   },
   floatingCartButton: {
     backgroundColor: colors.primary,
-    borderRadius: layout.radius.md,
+    borderRadius: layout.radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     ...layout.shadows.brand,
   },
@@ -274,19 +367,80 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   cartItemsText: {
-    color: colors.surface,
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.xs,
+    color: colors.surface,
     opacity: 0.9,
   },
   cartTotalText: {
-    color: colors.surface,
     fontFamily: typography.fonts.headingExtra,
     fontSize: typography.sizes.md,
+    color: colors.surface,
   },
   viewCartText: {
-    color: colors.surface,
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.md,
+    color: colors.surface,
+  },
+  reviewsSection: {
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl * 2,
+  },
+  reviewsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  leaveReviewText: {
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.sm,
+    color: colors.primary,
+  },
+  reviewCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: layout.radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.md,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7', // Amber-100
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: layout.radius.sm,
+    gap: 4,
+  },
+  reviewRatingText: {
+    fontFamily: typography.fonts.headingExtra,
+    fontSize: typography.sizes.xs,
+    color: '#D97706', // Amber-600
+  },
+  reviewDate: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+  },
+  reviewComment: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.sm,
+    color: colors.text,
+    marginTop: spacing.xs,
+  },
+  emptyReviewsText: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
 });

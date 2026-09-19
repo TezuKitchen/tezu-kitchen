@@ -27,16 +27,33 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/tezukitchen
       DATABASE_USERNAME: ${DATABASE_USERNAME:-tezukitchen}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-changeme}
-      JWT_SECRET: ${JWT_SECRET:-Y2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZQ==}
+      JWT_SECRET: ${JWT_SECRET}
       SERVER_PORT: ${SERVER_PORT:-8080}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8081,http://localhost:19006}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_Tai04XqY8wEdl3}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-2kNIUiONJbjDn7PGstqjEYyN}
     ports:
       - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
+    volumes:
+      - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: tezukitchen-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

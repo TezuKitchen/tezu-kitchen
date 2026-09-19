@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, typography, spacing, layout } from '../../src/theme';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const router = useRouter();
   
   return (
     <SafeAreaView style={styles.container}>
@@ -14,6 +16,10 @@ export default function ProfileScreen() {
         <Text style={styles.name}>{user?.name}</Text>
         <Text style={styles.email}>{user?.email}</Text>
         
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit-profile')}>
+          <Text style={styles.editText}>Edit Profile</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
@@ -50,6 +56,19 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
     marginBottom: spacing.xl,
+  },
+  editButton: {
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: layout.radius.md,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editText: {
+    color: colors.primary,
+    fontFamily: typography.fonts.heading,
   },
   logoutButton: {
     backgroundColor: '#FEE2E2',

@@ -32,6 +32,9 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
 
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006}
+
   razorpay:
     key-id: ${RAZORPAY_KEY_ID:rzp_test_Tai04XqY8wEdl3}
     key-secret: ${RAZORPAY_KEY_SECRET:2kNIUiONJbjDn7PGstqjEYyN}
@@ -42,3 +45,21 @@ springdoc:
     path: /api/docs
   swagger-ui:
     path: /api/swagger-ui
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration
+logging:
+  file:
+    name: logs/tezukitchen-api.log
+  level:
+    root: INFO
+    com.tezukitchen.api: INFO

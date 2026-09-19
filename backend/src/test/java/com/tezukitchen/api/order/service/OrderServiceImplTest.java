@@ -56,7 +56,7 @@ class OrderServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private RestaurantRepository restaurantRepository;
     @Mock private MenuItemRepository menuItemRepository;
-    @Mock private com.tezukitchen.api.notification.service.NotificationService notificationService;
+    @Mock private com.tezukitchen.api.notification.service.PushNotificationService pushNotificationService;
 
     @InjectMocks
     private OrderServiceImpl orderService;

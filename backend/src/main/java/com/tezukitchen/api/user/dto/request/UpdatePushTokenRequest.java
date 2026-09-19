@@ -6,6 +6,6 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class UpdatePushTokenRequest {
 
-    @NotBlank(message = "Push token cannot be blank")
-    private String pushToken;
+    @NotBlank(message = "Push token is required")
+    private String expoPushToken;
 }

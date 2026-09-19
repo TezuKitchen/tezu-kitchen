@@ -6,6 +6,24 @@ import { colors, typography, spacing, layout } from '../theme';
 import { useAuth } from './AuthContext';
 import api from '../services/api';
 
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+
+let Notifications: any = null;
+try {
+  Notifications = require('expo-notifications');
+  // Configure notification behavior
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {
+  console.log('Failed to load expo-notifications (likely in Expo Go):', e);
+}
+
 interface NotificationData {
   title: string;
   body: string;
@@ -32,20 +50,47 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const registerToken = async () => {
       if (!user) return;
       try {
-        // Generate a standard device identifier / Expo push token representation
-        const userId = user?.id || (user as any)?.userId || 'dev';
-        const mockOrRealToken = Platform.OS === 'web'
-          ? `web-push-token-${userId}`
-          : `ExponentPushToken[local-${userId}]`;
+        let token = '';
+        const isExpoGo = Constants.appOwnership === 'expo';
+        
+        if (Platform.OS !== 'web' && Device.isDevice && !isExpoGo && Notifications) {
+          try {
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
+            if (existingStatus !== 'granted') {
+              const { status } = await Notifications.requestPermissionsAsync();
+              finalStatus = status;
+            }
+            if (finalStatus === 'granted') {
+              token = (await Notifications.getExpoPushTokenAsync({ projectId: 'your-project-id' })).data;
+            }
+          } catch (pushErr) {
+            console.log('Push notification not available:', pushErr);
+            const userId = user?.id || (user as any)?.userId || 'dev';
+            token = `ExponentPushToken[mock-${userId}]`;
+          }
+        } else {
+          // Mock token for emulator, web, or Expo Go
+          const userId = user?.id || (user as any)?.userId || 'dev';
+          token = `ExponentPushToken[mock-${userId}]`;
+        }
 
-        setPushToken(mockOrRealToken);
-
-        // Send to backend endpoint
-        await api.put('/users/push-token', {
-          pushToken: mockOrRealToken,
-        });
+        if (token) {
+          setPushToken(token);
+          // Fetch existing profile to preserve other fields
+          const profileRes = await api.get('/users/profile');
+          const profile = profileRes.data.data;
+          
+          await api.put('/users/profile', {
+            name: profile.name,
+            phone: profile.phone,
+            avatarUrl: profile.avatarUrl,
+            savedAddresses: profile.savedAddresses,
+            expoPushToken: token,
+          });
+        }
       } catch (error) {
-        console.log('Push token registration skipped or not supported:', error);
+        console.log('Push token registration skipped or failed:', error);
       }
     };
 

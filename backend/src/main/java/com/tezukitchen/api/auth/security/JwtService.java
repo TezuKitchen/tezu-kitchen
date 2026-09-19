@@ -25,8 +25,24 @@ public class JwtService {
 
     private SecretKey signingKey;
 
+    private static final String KNOWN_PLACEHOLDER_SECRET =
+            "Y2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWVjaGFuZ2VtZQ==";
+
     @PostConstruct
     public void init() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET environment variable is not set. "
+                    + "Set it to a Base64-encoded string of at least 256 bits — "
+                    + "generate one with: openssl rand -base64 64");
+        }
+
+        if (jwtSecret.equals(KNOWN_PLACEHOLDER_SECRET)) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is still set to the example placeholder value from .env.example. "
+                    + "Generate a unique secret with: openssl rand -base64 64");
+        }
+
         try {
             byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
             if (keyBytes.length < 32) {

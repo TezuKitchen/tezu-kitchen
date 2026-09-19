@@ -230,3 +230,71 @@ src/test/java/com/tezukitchen/api/<module>/
 # Specific module tests
 ./mvnw test -Dtest="com.tezukitchen.api.restaurant.**"
 ```
+
+## Security
+
+### JWT Secret
+
+The `JWT_SECRET` environment variable is **required** and validated at startup. The application will refuse to start if:
+
+- `JWT_SECRET` is missing or blank
+- `JWT_SECRET` is shorter than 256 bits (32 bytes) after Base64 decoding
+- `JWT_SECRET` still matches the known placeholder value from `.env.example`
+
+**Generate a secure secret:**
+```bash
+openssl rand -base64 64
+```
+
+Set it in your `.env` file:
+```
+JWT_SECRET=<your-generated-secret>
+```
+
+### CORS Configuration
+
+CORS origins are controlled by the `ALLOWED_ORIGINS` environment variable — a comma-separated list of allowed origin patterns.
+
+**Default (local development):**
+```
+ALLOWED_ORIGINS=http://localhost:8081,http://localhost:19006
+```
+
+For production, set this to your actual frontend domain(s):
+```
+ALLOWED_ORIGINS=https://app.tezukitchen.com
+```
+
+### Rate Limiting
+
+Authentication endpoints are rate-limited to prevent brute-force attacks:
+
+| Endpoint | Method | Limit | Window |
+|----------|--------|-------|--------|
+| `/api/v1/auth/login` | POST | 5 requests | 1 minute |
+| `/api/v1/auth/register` | POST | 5 requests | 1 minute |
+
+Rate limits are applied **per client IP address**. When the limit is exceeded, the API returns:
+
+```json
+{
+  "status": 429,
+  "message": "Too many requests. Please try again later.",
+  "timestamp": "2026-09-16T12:00:00"
+}
+```
+
+All other endpoints are **not** rate-limited.
+
+> **Note:** The current implementation uses an in-memory rate limiter suitable for single-instance deployments. For multi-instance deployments behind a load balancer, this should be replaced with a Redis-backed solution.
+
+### SQL Injection Protection
+
+All database queries use Spring Data JPA derived query methods or `@Param`-bound JPQL queries. There are no string-concatenated SQL queries, `EntityManager.createNativeQuery()` calls, or raw `JdbcTemplate` usage anywhere in the codebase.
+
+**Guidelines for new queries:**
+- Prefer Spring Data derived query methods (e.g., `findByEmail`)
+- For custom queries, use JPQL with `@Param` bindings (e.g., `@Query("... WHERE r.user.id = :userId")`)
+- **Never** concatenate user input into query strings
+- **Never** use `EntityManager.createNativeQuery()` with string interpolation
+

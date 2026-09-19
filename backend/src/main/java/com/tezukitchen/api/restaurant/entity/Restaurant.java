@@ -32,6 +32,14 @@ public class Restaurant {
     @Column(name = "is_open", nullable = false)
     private boolean isOpen = true;
 
+    @Builder.Default
+    @Column(name = "average_rating", precision = 3, scale = 2)
+    private java.math.BigDecimal averageRating = java.math.BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "review_count", nullable = false)
+    private Integer reviewCount = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant createdAt;
 

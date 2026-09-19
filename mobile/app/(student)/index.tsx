@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MapPin, Bell } from 'lucide-react-native';
-import { colors, typography, spacing } from '../../src/theme';
+import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import RestaurantCard from '../../src/components/RestaurantCard';
 
@@ -26,14 +26,18 @@ interface Restaurant {
 export default function StudentHome() {
   const router = useRouter();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [favorites, setFavorites] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRestaurants = async () => {
     try {
-      const response = await api.get('/restaurants');
-      // The backend uses Spring Data pageable, so data is in content
-      setRestaurants(response.data.data.content);
+      const [restRes, favRes] = await Promise.all([
+        api.get('/restaurants'),
+        api.get('/favorites').catch(() => ({ data: { data: [] } }))
+      ]);
+      setRestaurants(restRes.data.data.content);
+      setFavorites(favRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
     } finally {
@@ -66,6 +70,32 @@ export default function StudentHome() {
     </View>
   );
 
+  const renderFavorites = () => {
+    if (favorites.length === 0) return null;
+    return (
+      <View style={styles.favoritesSection}>
+        <Text style={styles.sectionTitle}>Your Favorites</Text>
+        <FlatList
+          data={favorites}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => `fav-${item.id}`}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.favoriteCard}
+              onPress={() => router.push(`/restaurant/${item.id}`)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.favoriteName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.favoriteTags} numberOfLines={1}>{item.description}</Text>
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
+        />
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {renderHeader()}
@@ -83,7 +113,10 @@ export default function StudentHome() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
           }
           ListHeaderComponent={
-            <Text style={styles.sectionTitle}>All Restaurants</Text>
+            <>
+              {renderFavorites()}
+              <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>All Restaurants</Text>
+            </>
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -91,14 +124,16 @@ export default function StudentHome() {
             </View>
           }
           renderItem={({ item }) => (
-            <RestaurantCard
-              id={item.id}
-              name={item.name}
-              description={item.description}
-              location={item.location}
-              isOpen={item.open}
-              onPress={() => router.push(`/restaurant/${item.id}`)}
-            />
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <RestaurantCard
+                id={item.id}
+                name={item.name}
+                description={item.description}
+                location={item.location}
+                isOpen={item.open}
+                onPress={() => router.push(`/restaurant/${item.id}`)}
+              />
+            </View>
           )}
         />
       )}
@@ -150,24 +185,48 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // padding for bottom tab bar
   },
   sectionTitle: {
-    fontFamily: typography.fonts.headingExtra,
-    fontSize: typography.sizes.xl,
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.lg,
     color: colors.text,
-    marginBottom: spacing.lg,
-    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  emptyContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.md,
+    color: colors.textMuted,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyContainer: {
-    padding: spacing.xl,
-    alignItems: 'center',
+  favoritesSection: {
+    marginBottom: spacing.xl,
+    paddingTop: spacing.md,
   },
-  emptyText: {
-    fontFamily: typography.fonts.body,
+  favoriteCard: {
+    width: 200,
+    backgroundColor: colors.surface,
+    borderRadius: layout.radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    ...layout.shadows.sm,
+  },
+  favoriteName: {
+    fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.md,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  favoriteTags: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.sm,
     color: colors.textMuted,
   },
 });

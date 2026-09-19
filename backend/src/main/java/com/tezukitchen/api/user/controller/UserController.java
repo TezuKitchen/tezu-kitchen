@@ -46,6 +46,14 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User updated successfully", response));
     }
 
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            @Valid @RequestBody UpdateUserRequest request) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        UserResponse response = userService.updateUser(authenticatedUserId, authenticatedUserId, request);
+        return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         UUID authenticatedUserId = getAuthenticatedUserId();
@@ -57,7 +65,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> updatePushToken(
             @Valid @RequestBody UpdatePushTokenRequest request) {
         UUID authenticatedUserId = getAuthenticatedUserId();
-        userService.updatePushToken(authenticatedUserId, request.getPushToken());
+        userService.updatePushToken(authenticatedUserId, request.getExpoPushToken());
         return ResponseEntity.ok(ApiResponse.success("Push token updated successfully", null));
     }
 
