@@ -83,7 +83,9 @@ export default function LoginScreen() {
       console.error(error);
       
       let errorMessage = 'Something went wrong. Please try again.';
-      if (error.response?.data) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Server response timed out. Please ensure the backend is running and reachable.';
+      } else if (error.response?.data) {
         const data = error.response.data;
         if (data.details && Array.isArray(data.details) && data.details.length > 0) {
           // Join validation errors with newlines
@@ -91,6 +93,8 @@ export default function LoginScreen() {
         } else if (data.message) {
           errorMessage = data.message;
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
