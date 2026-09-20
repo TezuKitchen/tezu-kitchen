@@ -7,11 +7,11 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
@@ -235,7 +235,7 @@ export default function OwnerStoreScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}

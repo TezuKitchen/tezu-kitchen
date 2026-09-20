@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/context/AuthContext';
 import api from '../../src/services/api';
 import { colors, typography, spacing, layout } from '../../src/theme';
@@ -203,7 +203,7 @@ export default function OwnerAnalyticsScreen() {
   }, [filteredOrders]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Analytics & Earnings</Text>

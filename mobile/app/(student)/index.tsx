@@ -76,7 +76,7 @@ export default function StudentHome() {
     if (favorites.length === 0) return null;
     return (
       <View style={styles.favoritesSection}>
-        <Text style={styles.sectionTitle}>Your Favorites</Text>
+        <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>Your Favorites</Text>
         <FlatList
           data={favorites}
           horizontal
@@ -117,7 +117,7 @@ export default function StudentHome() {
           ListHeaderComponent={
             <>
               {renderFavorites()}
-              <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>All Restaurants</Text>
+              <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg, marginTop: spacing.md }]}>All Restaurants</Text>
             </>
           }
           ListEmptyComponent={
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   listContent: {
-    padding: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: 100, // padding for bottom tab bar
   },
   sectionTitle: {

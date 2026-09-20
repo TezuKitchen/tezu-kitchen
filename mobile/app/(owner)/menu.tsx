@@ -7,12 +7,12 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   RefreshControl,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
@@ -252,7 +252,7 @@ export default function OwnerMenuScreen() {
 
   if (!restaurant) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyContainer}>
           <MaterialIcons name="store" size={64} color={colors.border} />
           <Text style={styles.emptyTitle}>No Store Found</Text>
@@ -265,7 +265,7 @@ export default function OwnerMenuScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Menu Management</Text>
         <Text style={styles.headerSubtitle}>Long press an item to edit or delete</Text>

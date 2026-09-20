@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/context/AuthContext';
 import api from '../../src/services/api';
 import { colors, typography, spacing, layout } from '../../src/theme';
@@ -203,7 +204,7 @@ export default function OwnerDashboard() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.tabs}>
         {(['NEW', 'ACTIVE', 'DONE'] as const).map(tab => (
           <TouchableOpacity
@@ -230,7 +231,7 @@ export default function OwnerDashboard() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

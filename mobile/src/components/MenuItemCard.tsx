@@ -31,7 +31,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
           <View style={styles.vegDot} />
         </View>
         
-        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.price}>₹{item.price}</Text>
         <Text style={styles.description} numberOfLines={2}>
           {item.description}
@@ -56,6 +56,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
             <TouchableOpacity 
               style={styles.stepperButton}
               onPress={() => onUpdateQuantity && onUpdateQuantity(quantity - 1)}
+              activeOpacity={0.7}
             >
               <Text style={styles.stepperButtonText}>−</Text>
             </TouchableOpacity>
@@ -63,6 +64,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
             <TouchableOpacity 
               style={styles.stepperButton}
               onPress={() => onUpdateQuantity && onUpdateQuantity(quantity + 1)}
+              activeOpacity={0.7}
             >
               <Text style={styles.stepperButtonText}>+</Text>
             </TouchableOpacity>
@@ -72,6 +74,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
             style={styles.addButton}
             onPress={onAdd}
             disabled={!item.available}
+            activeOpacity={0.8}
           >
             <Text style={styles.addButtonText}>ADD</Text>
           </TouchableOpacity>
@@ -85,6 +88,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl + 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
     backgroundColor: colors.surface,
@@ -95,6 +100,7 @@ const styles = StyleSheet.create({
   details: {
     flex: 1,
     paddingRight: spacing.md,
+    justifyContent: 'center',
   },
   vegIndicator: {
     width: 14,
@@ -116,6 +122,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.text,
     marginBottom: 4,
+    flexShrink: 1,
   },
   price: {
     fontFamily: typography.fonts.bodyMedium,
@@ -128,19 +135,22 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
     lineHeight: 18,
+    flexShrink: 1,
   },
   actionContainer: {
     alignItems: 'center',
-    width: 110,
+    justifyContent: 'center',
+    width: 104,
+    position: 'relative',
   },
   image: {
-    width: 110,
-    height: 110,
+    width: 104,
+    height: 104,
     borderRadius: layout.radius.md,
   },
   imagePlaceholder: {
-    width: 110,
-    height: 110,
+    width: 104,
+    height: 104,
     backgroundColor: colors.borderSubtle,
     borderRadius: layout.radius.md,
     alignItems: 'center',
@@ -150,11 +160,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm - 2,
+    paddingHorizontal: spacing.lg,
     borderRadius: layout.radius.sm,
     position: 'absolute',
-    bottom: -10,
+    bottom: -8,
+    minWidth: 84,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...layout.shadows.sm,
   },
   addButtonText: {
@@ -165,17 +178,19 @@ const styles = StyleSheet.create({
   stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.primary,
     borderRadius: layout.radius.sm,
     position: 'absolute',
-    bottom: -10,
-    height: 36,
+    bottom: -8,
+    height: 32,
+    minWidth: 84,
     ...layout.shadows.sm,
   },
   stepperButton: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm + 2,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -190,6 +205,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.sm,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
 });
