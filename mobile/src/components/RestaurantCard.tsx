@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MapPin, Star, Clock } from 'lucide-react-native';
+import { MapPin, Star, Clock, Store } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { colors, typography, spacing, layout } from '../theme';
+import { getTransformedUrl } from '../services/imageService';
 
 interface RestaurantCardProps {
   id: string;
@@ -9,6 +11,8 @@ interface RestaurantCardProps {
   description: string;
   location: string;
   isOpen: boolean;
+  bannerUrl?: string;
+  logoUrl?: string;
   onPress: () => void;
 }
 
@@ -18,6 +22,8 @@ export default function RestaurantCard({
   description,
   location,
   isOpen,
+  bannerUrl,
+  logoUrl,
   onPress
 }: RestaurantCardProps) {
   return (
@@ -26,8 +32,19 @@ export default function RestaurantCard({
       activeOpacity={0.8}
       onPress={onPress}
     >
-      {/* Placeholder for image since backend doesn't have image URLs yet */}
-      <View style={styles.imagePlaceholder}>
+      <View style={{ position: 'relative' }}>
+        {bannerUrl ? (
+          <Image
+            source={{ uri: getTransformedUrl(bannerUrl, 'restaurant-card') }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Store size={40} color={colors.textLight} />
+          </View>
+        )}
         {!isOpen && (
           <View style={styles.closedBadge}>
             <Text style={styles.closedText}>CLOSED</Text>
@@ -71,10 +88,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...layout.shadows.md,
   },
+  image: {
+    width: '100%',
+    height: 140,
+    borderTopLeftRadius: layout.radius.md,
+    borderTopRightRadius: layout.radius.md
+  },
   imagePlaceholder: {
     height: 140,
     backgroundColor: colors.borderSubtle,
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closedBadge: {
     position: 'absolute',

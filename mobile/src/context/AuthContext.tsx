@@ -56,6 +56,7 @@ interface User {
   phone?: string;
   role: UserRole;
   restaurantId?: number | string; // Only for OWNER role
+  avatarUrl?: string;
 }
 
 interface AuthContextType {

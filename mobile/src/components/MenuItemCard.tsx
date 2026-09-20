@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
+import { UtensilsCrossed } from 'lucide-react-native';
 import { colors, typography, spacing, layout } from '../theme';
+import { getTransformedUrl } from '../services/imageService';
 
 export interface MenuItem {
   id: string;
@@ -9,6 +12,7 @@ export interface MenuItem {
   price: number;
   category: string;
   available: boolean;
+  primaryImageUrl?: string;
 }
 
 interface MenuItemCardProps {
@@ -35,7 +39,18 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
       </View>
       
       <View style={styles.actionContainer}>
-        <View style={styles.imagePlaceholder} />
+        {item.primaryImageUrl ? (
+          <Image
+            source={{ uri: getTransformedUrl(item.primaryImageUrl, 'menu-card') }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <UtensilsCrossed size={28} color={colors.textLight} />
+          </View>
+        )}
         {quantity > 0 ? (
           <View style={styles.stepperContainer}>
             <TouchableOpacity 
@@ -118,11 +133,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 110,
   },
+  image: {
+    width: 110,
+    height: 110,
+    borderRadius: layout.radius.md,
+  },
   imagePlaceholder: {
     width: 110,
     height: 110,
     backgroundColor: colors.borderSubtle,
     borderRadius: layout.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButton: {
     backgroundColor: colors.surface,

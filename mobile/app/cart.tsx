@@ -52,6 +52,7 @@ export default function CartScreen() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [promoError, setPromoError] = useState('');
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
 
   React.useEffect(() => {
     api.get('/users/profile')

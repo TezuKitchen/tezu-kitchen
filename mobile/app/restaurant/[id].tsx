@@ -10,8 +10,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Star, Clock, ShoppingBag, Heart } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
+import { getTransformedUrl } from '../../src/services/imageService';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
 import { useCart } from '../../src/context/CartContext';
 import { useAuth } from '../../src/context/AuthContext';
@@ -24,6 +26,9 @@ interface RestaurantDetails {
   open: boolean;
   averageRating?: number;
   reviewCount?: number;
+  bannerUrl?: string;
+  logoUrl?: string;
+  images?: any[];
 }
 
 export default function RestaurantMenuScreen() {
@@ -90,6 +95,14 @@ export default function RestaurantMenuScreen() {
   const renderHeader = () => (
     <View>
       <View style={styles.heroPlaceholder}>
+        {restaurant?.bannerUrl ? (
+          <Image
+            source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-hero') }}
+            style={styles.heroImage}
+            contentFit="cover"
+            transition={300}
+          />
+        ) : null}
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
@@ -136,7 +149,7 @@ export default function RestaurantMenuScreen() {
       <View style={styles.reviewsHeader}>
         <Text style={styles.menuTitle}>Reviews</Text>
         {user && (
-          <TouchableOpacity onPress={() => router.push(`/review?restaurantId=${id}`)}>
+          <TouchableOpacity onPress={() => router.push(`/review?restaurantId=${id}` as any)}>
             <Text style={styles.leaveReviewText}>Leave a Review</Text>
           </TouchableOpacity>
         )}
@@ -240,6 +253,10 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: colors.borderSubtle,
     position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: 200,
   },
   backButton: {
     position: 'absolute',

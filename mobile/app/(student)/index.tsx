@@ -21,6 +21,8 @@ interface Restaurant {
   description: string;
   location: string;
   open: boolean;
+  bannerUrl?: string;
+  logoUrl?: string;
 }
 
 export default function StudentHome() {
@@ -131,6 +133,8 @@ export default function StudentHome() {
                 description={item.description}
                 location={item.location}
                 isOpen={item.open}
+                bannerUrl={item.bannerUrl}
+                logoUrl={item.logoUrl}
                 onPress={() => router.push(`/restaurant/${item.id}`)}
               />
             </View>

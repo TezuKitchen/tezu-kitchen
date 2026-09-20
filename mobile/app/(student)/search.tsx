@@ -23,6 +23,8 @@ interface Restaurant {
   location?: string;
   open?: boolean;
   isOpen?: boolean;
+  bannerUrl?: string;
+  logoUrl?: string;
 }
 
 export default function SearchScreen() {
@@ -185,6 +187,8 @@ export default function SearchScreen() {
               description={item.description || ''}
               location={item.location || ''}
               isOpen={item.open ?? item.isOpen ?? true}
+              bannerUrl={item.bannerUrl}
+              logoUrl={item.logoUrl}
               onPress={() => router.push(`/restaurant/${item.id}`)}
             />
           )}
