@@ -1,0 +1,508 @@
+{
+  "info": {
+    "name": "TezuKitchen - Payments Test Suite",
+    "description": "Comprehensive automated test collection for Payments API endpoints (/api/v1/payments) covering payment creation, payment method validation, ownership authorization, duplicate payment restrictions, and order-specific payment lookups.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "studentToken", "value": "" },
+    { "key": "studentId", "value": "" },
+    { "key": "otherStudentToken", "value": "" },
+    { "key": "otherStudentId", "value": "" },
+    { "key": "ownerToken", "value": "" },
+    { "key": "ownerId", "value": "" },
+    { "key": "restaurantId", "value": "" },
+    { "key": "menuItemId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "nonExistentId", "value": "c0000000-0000-0000-0000-000000000003" }
+  ],
+  "item": [
+    {
+      "name": "01. Setup - Register Student",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"studentToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"studentId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Payment Student\",\n  \"email\": \"pay_student_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543220\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"STUDENT\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "02. Setup - Register Other Student",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"otherStudentToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"otherStudentId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Other Student\",\n  \"email\": \"other_student_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543221\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"STUDENT\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "03. Setup - Register Owner",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"ownerToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"ownerId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Payment Owner\",\n  \"email\": \"pay_owner_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543222\",\n  \"password\": \"Pass12345!\",\n  \"role\": \"OWNER\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "04. Setup - Create Restaurant",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"restaurantId\", json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Payment Test Canteen\",\n  \"description\": \"Fast meals\",\n  \"location\": \"Hostel Block\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/restaurants", "host": ["{{baseUrl}}"], "path": ["restaurants"] }
+      }
+    },
+    {
+      "name": "05. Setup - Create Menu Item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"menuItemId\", json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"restaurantId\": \"{{restaurantId}}\",\n  \"name\": \"Veg Thali\",\n  \"description\": \"Full course meal\",\n  \"price\": 120.00,\n  \"category\": \"Main\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/menu", "host": ["{{baseUrl}}"], "path": ["menu"] }
+      }
+    },
+    {
+      "name": "06. Setup - Place Order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"orderId\", json.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"restaurantId\": \"{{restaurantId}}\",\n  \"deliveryAddress\": \"Room 42\",\n  \"items\": [\n    {\n      \"menuItemId\": \"{{menuItemId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+      }
+    },
+    {
+      "name": "07. Create Payment - Validation Error Missing OrderId (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(400);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"method\": \"UPI\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+      }
+    },
+    {
+      "name": "08. Create Payment - Invalid Payment Method (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.message).to.include(\"Invalid payment method\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"BITCOIN\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+      }
+    },
+    {
+      "name": "09. Create Payment - Forbidden Other User Order (Expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.message).to.include(\"only pay for your own orders\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{otherStudentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"UPI\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+      }
+    },
+    {
+      "name": "10. Create Payment - Success (Expect 201)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.have.property(\"id\");",
+              "pm.expect(json.data.orderId).to.eql(pm.collectionVariables.get(\"orderId\"));",
+              "pm.expect(json.data.method).to.eql(\"UPI\");",
+              "pm.expect(json.data.status).to.eql(\"PENDING\");",
+              "pm.collectionVariables.set(\"paymentId\", json.data.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"UPI\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+      }
+    },
+    {
+      "name": "11. Create Payment - Duplicate Payment for Same Order (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.message).to.include(\"Payment already exists\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"COD\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+      }
+    },
+    {
+      "name": "12. Get Payment By ID - Success as Ordering Student (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.id).to.eql(pm.collectionVariables.get(\"paymentId\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["payments", "{{paymentId}}"] }
+      }
+    },
+    {
+      "name": "13. Get Payment By ID - Success as Restaurant Owner (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.id).to.eql(pm.collectionVariables.get(\"paymentId\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{ownerToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["payments", "{{paymentId}}"] }
+      }
+    },
+    {
+      "name": "14. Get Payment By ID - Forbidden Unrelated User (Expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.message).to.include(\"not have access\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{otherStudentToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["payments", "{{paymentId}}"] }
+      }
+    },
+    {
+      "name": "15. Get Payment By Order ID - Success (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.orderId).to.eql(pm.collectionVariables.get(\"orderId\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/payments/order/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["payments", "order", "{{orderId}}"] }
+      }
+    },
+    {
+      "name": "16. Get Payment By Order ID - Not Found (Expect 404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/payments/order/{{nonExistentId}}", "host": ["{{baseUrl}}"], "path": ["payments", "order", "{{nonExistentId}}"] }
+      }
+    }
+  ]
+}

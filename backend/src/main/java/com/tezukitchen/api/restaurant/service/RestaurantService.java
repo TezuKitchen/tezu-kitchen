@@ -1,10 +1,19 @@
 package com.tezukitchen.api.restaurant.service;
 
-/**
- * Restaurant management service interface.
- * <p>
- * TODO: Define restaurant CRUD methods
- */
+import com.tezukitchen.api.restaurant.dto.request.CreateRestaurantRequest;
+import com.tezukitchen.api.restaurant.dto.request.UpdateRestaurantRequest;
+import com.tezukitchen.api.restaurant.dto.response.RestaurantResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+import java.util.UUID;
+
 public interface RestaurantService {
-    // TODO: Add method signatures
+    RestaurantResponse createRestaurant(UUID ownerId, CreateRestaurantRequest request);
+    RestaurantResponse getRestaurantById(UUID id);
+    Page<RestaurantResponse> getAllRestaurants(Pageable pageable);
+    List<RestaurantResponse> getRestaurantsByOwner(UUID ownerId);
+    RestaurantResponse updateRestaurant(UUID authenticatedUserId, UUID restaurantId, UpdateRestaurantRequest request);
+    void deleteRestaurant(UUID authenticatedUserId, UUID restaurantId);
 }

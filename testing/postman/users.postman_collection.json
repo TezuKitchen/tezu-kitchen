@@ -1,0 +1,299 @@
+{
+  "info": {
+    "name": "TezuKitchen - Users Test Suite",
+    "description": "Comprehensive automated test suite for Users API endpoints (/api/v1/users) covering profile retrieval, pagination, validation, permissions, and account deletion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "userToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "otherUserId", "value": "a0000000-0000-0000-0000-000000000001" }
+  ],
+  "item": [
+    {
+      "name": "01. Setup - Register User for Tests",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json.data) {",
+              "    pm.collectionVariables.set(\"userToken\", json.data.accessToken);",
+              "    pm.collectionVariables.set(\"userId\", json.data.userId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"user_{{$timestamp}}@tezu.ac.in\",\n  \"phone\": \"9876543210\",\n  \"password\": \"TestPass123!\",\n  \"role\": \"STUDENT\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+      }
+    },
+    {
+      "name": "02. Get User By ID - Unauthorized Missing Token (Expect 401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401 Unauthorized\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "03. Get User By ID - Success (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.id).to.eql(pm.collectionVariables.get(\"userId\"));",
+              "pm.expect(json.data).to.have.property(\"email\");",
+              "pm.expect(json.data).to.have.property(\"role\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "04. Get User By ID - Not Found (Expect 404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(404);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users/{{otherUserId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{otherUserId}}"] }
+      }
+    },
+    {
+      "name": "05. Get All Users - Paginated (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data).to.have.property(\"content\");",
+              "pm.expect(json.data.content).to.be.an(\"array\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["users"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }] }
+      }
+    },
+    {
+      "name": "06. Update User - Validation Error Blank Name (Expect 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(400);",
+              "pm.expect(json.errors).to.be.an(\"array\").that.is.not.empty;"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"\",\n  \"phone\": \"9876543210\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "07. Update User - Forbidden Update Other Account (Expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.status).to.eql(403);",
+              "pm.expect(json.message).to.include(\"only update your own profile\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Intruder Name\",\n  \"phone\": \"9998887776\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/users/{{otherUserId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{otherUserId}}"] }
+      }
+    },
+    {
+      "name": "08. Update User - Success (Expect 200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.expect(json.success).to.be.true;",
+              "pm.expect(json.data.name).to.eql(\"Updated User Name\");",
+              "pm.expect(json.data.phone).to.eql(\"9988776655\");"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated User Name\",\n  \"phone\": \"9988776655\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "09. Delete User - Forbidden Delete Other Account (Expect 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users/{{otherUserId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{otherUserId}}"] }
+      }
+    },
+    {
+      "name": "10. Delete User - Success (Expect 204)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 204 No Content\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+      }
+    }
+  ]
+}

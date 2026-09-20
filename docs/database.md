@@ -13,6 +13,7 @@ The following entities are planned based on the team's database design:
 | Entity | Table Name | Description |
 |--------|-----------|-------------|
 | User | `users` | Application users (customers, restaurant owners, admins) |
+| RefreshToken | `refresh_tokens` | Refresh tokens for session persistence and revocation |
 | Restaurant | `restaurants` | Restaurant information |
 | MenuItem | `menu_items` | Food items available at restaurants |
 | Order | `orders` | Customer orders |
@@ -35,10 +36,11 @@ backend/src/main/resources/db/migration/
 V<version>__<description>.sql
 ```
 
-Examples:
-- `V1__initial_schema.sql` — Initial database schema
-- `V2__add_user_roles.sql` — Add roles to users table
-- `V3__add_order_status_index.sql` — Add index for order status queries
+### Applied Migrations
+
+- `V1__initial_schema.sql` — Initial schema (users, restaurants, menu_items, orders, order_items, payments)
+- `V2__add_order_version_column.sql` — Optimistic locking version column for orders
+- `V3__create_refresh_tokens.sql` — Refresh tokens table and indexes
 
 ### Creating V1 Migration
 

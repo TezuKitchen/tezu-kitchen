@@ -1,20 +1,52 @@
 package com.tezukitchen.api.restaurant.entity;
 
+import com.tezukitchen.api.user.entity.User;
 import jakarta.persistence.*;
+import lombok.*;
+import java.time.Instant;
+import java.util.UUID;
 
-/**
- * Restaurant entity.
- * <p>
- * TODO: Add fields based on the team's database design
- * TODO: Do NOT invent columns — use the supplied DDL
- */
 @Entity
 @Table(name = "restaurants")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Restaurant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    // TODO: Add fields from the team's database design
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false)
+    private String location;
+
+    @Builder.Default
+    @Column(name = "is_open", nullable = false)
+    private boolean isOpen = true;
+
+    @Builder.Default
+    @Column(name = "average_rating", precision = 3, scale = 2)
+    private java.math.BigDecimal averageRating = java.math.BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "review_count", nullable = false)
+    private Integer reviewCount = 0;
+
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
+    private Instant createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

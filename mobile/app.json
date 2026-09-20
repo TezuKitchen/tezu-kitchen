@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "TezuKitchen",
+    "slug": "tezu-kitchen-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.tezukitchenmobile"
+    },
+    "android": {
+      "package": "com.anonymous.tezukitchenmobile"
+    },
+    "scheme": "tezukitchen",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

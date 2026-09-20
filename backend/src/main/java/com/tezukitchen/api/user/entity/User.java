@@ -1,22 +1,59 @@
 package com.tezukitchen.api.user.entity;
 
+import com.tezukitchen.api.common.enums.UserRole;
 import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-/**
- * User entity.
- * <p>
- * TODO: Add fields based on the team's database design
- * TODO: Do NOT invent columns — use the supplied DDL
- */
+import java.time.Instant;
+import java.util.UUID;
+
 @Entity
 @Table(name = "users")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    // TODO: Add fields from the team's database design
+    @Column(nullable = false)
+    private String name;
 
-    // Getters and setters will be added with fields
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false, length = 20)
+    private String phone;
+
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "user_role")
+    private UserRole role;
+
+    @Column(name = "expo_push_token")
+    private String expoPushToken;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @ElementCollection
+    @CollectionTable(name = "user_addresses", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "address")
+    @Builder.Default
+    private java.util.List<String> savedAddresses = new java.util.ArrayList<>();
+
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
+    private Instant createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

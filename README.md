@@ -29,8 +29,8 @@ The backend follows a **package-by-feature** structure where each feature module
 
 ```
 TezuKitchen/
-├── backend/          # Spring Boot application
-├── frontend/         # Frontend application (planned)
+├── backend/          # Spring Boot REST API
+├── mobile/           # React Native (Expo) mobile app
 ├── database/         # Database documentation & raw migrations
 ├── docs/             # Project documentation
 ├── .github/          # CI/CD workflows
@@ -62,28 +62,41 @@ cp .env.example .env
 # Edit .env with your local configuration
 ```
 
-### 3. Start PostgreSQL
+### 3. Start the Application
+
+The primary way to run the entire stack (database and backend) is through Docker Compose:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d --build
 ```
 
-This starts PostgreSQL on port `5432` with a named volume for data persistence.
+To check the backend logs:
+```bash
+docker compose logs -f backend
+```
 
-### 4. Start the Backend
+When you change only backend code and the database doesn't need touching, you can rebuild just the backend service:
+```bash
+docker compose up -d --build backend
+```
+
+To stop everything:
+```bash
+docker compose down
+```
+
+*(Alternative)* For a fast local development loop where you run the Java app directly on your host:
 
 ```bash
+# Start only the database
+docker compose up -d postgres
+
+# Run backend via Maven
 cd backend
 ./mvnw spring-boot:run
 ```
 
 The API will be available at `http://localhost:8080`.
-
-Alternatively, start everything with Docker Compose:
-
-```bash
-docker compose up -d
-```
 
 ### 5. Run Tests
 
@@ -100,7 +113,8 @@ cd backend
 | `DATABASE_USERNAME` | Database username | `tezukitchen` |
 | `DATABASE_PASSWORD` | Database password | `changeme` |
 | `JWT_SECRET` | Secret key for JWT signing | — |
-| `JWT_EXPIRATION_MS` | JWT token expiration in ms | `86400000` |
+| `JWT_EXPIRATION_MS` | JWT access token expiration in ms | `3600000` |
+| `JWT_REFRESH_EXPIRATION_MS` | JWT refresh token expiration in ms | `604800000` |
 | `SERVER_PORT` | Application server port | `8080` |
 | `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` |
 
@@ -126,22 +140,22 @@ See [docs/development.md](docs/development.md) for detailed guidelines.
 - [Architecture](docs/architecture.md) — System design and module structure
 - [Development](docs/development.md) — Git workflow, code style, team boundaries
 - [Database](docs/database.md) — Schema design and migration conventions
-- [API](docs/api.md) — REST API conventions and planned endpoints
+- [API](docs/api.md) — REST API conventions and endpoints
 
 ## Current Status
 
 ### ✅ Current
 - Project architecture and scaffolding
 - Modular monolith package structure
+- Authentication & JWT (Registration, Login, Token Refresh with Rotation, Logout with Revocation)
+- User, Restaurant, Menu, Order, Payment backend modules
+- Database schema & Flyway migrations (V1, V2, V3)
 - Docker development environment
+- React Native (Expo) mobile client (Student & Owner flows)
 - CI pipeline
 - Documentation
 
 ### 🔜 Planned
-- Authentication & JWT
-- User management
-- Restaurant management
-- Menu management
-- Order processing
-- Payment processing
-- Frontend application
+- Owner Analytics charts
+- Push Notifications
+- Payment Gateway Integration (Razorpay / Stripe)
