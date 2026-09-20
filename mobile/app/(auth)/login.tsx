@@ -49,8 +49,8 @@ export default function LoginScreen() {
         
         // Backend wraps the AuthResponse in an ApiResponse (so the actual data is in response.data.data)
         const authData = response.data.data;
-        const { accessToken, ...userData } = authData;
-        await login(accessToken, userData);
+        const { accessToken, refreshToken, ...userData } = authData;
+        await login(accessToken, userData, refreshToken);
         
         // Router will auto-redirect based on role in _layout/index
         if (userData.role === 'OWNER') {
@@ -70,8 +70,8 @@ export default function LoginScreen() {
         console.log("REGISTER RESPONSE:", JSON.stringify(response.data));
         
         const authData = response.data.data;
-        const { accessToken, ...userData } = authData;
-        await login(accessToken, userData);
+        const { accessToken, refreshToken, ...userData } = authData;
+        await login(accessToken, userData, refreshToken);
         
         if (userData.role === 'OWNER') {
           router.replace('/(owner)');

@@ -64,7 +64,7 @@ export default function OwnerDashboard() {
         setOrders(ordersRes.data?.data?.content || []);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.warn('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

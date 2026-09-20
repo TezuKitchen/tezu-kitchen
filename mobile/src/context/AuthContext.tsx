@@ -63,7 +63,7 @@ interface AuthContextType {
   user: User | null;
   role: UserRole | null;
   isLoading: boolean;
-  login: (token: string, userData: User) => Promise<void>;
+  login: (token: string, userData: User, refreshToken?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -105,11 +105,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     bootstrapAsync();
   }, []);
 
-  const login = async (token: string, userData: User) => {
+  const login = async (token: string, userData: User, refreshToken?: string) => {
     try {
       console.log("LOGIN CALLED WITH TOKEN:", token ? "Exists" : "MISSING", "USERDATA:", userData);
       const safeToken = token || '';
       await setStorageItem('userToken', safeToken);
+      if (refreshToken) {
+        await setStorageItem('refreshToken', refreshToken);
+      }
       await setStorageItem('userData', JSON.stringify(userData));
       setUser(userData);
       setRole(userData.role);
@@ -122,6 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await deleteStorageItem('userToken');
+      await deleteStorageItem('refreshToken');
       await deleteStorageItem('userData');
       setUser(null);
       setRole(null);
