@@ -4,6 +4,8 @@ import com.tezukitchen.api.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -39,6 +41,11 @@ public class Restaurant {
     @Builder.Default
     @Column(name = "review_count", nullable = false)
     private Integer reviewCount = 0;
+
+    @OneToMany(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<RestaurantImage> images = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant createdAt;

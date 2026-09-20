@@ -2,11 +2,16 @@ package com.tezukitchen.api.restaurant.service;
 
 import com.tezukitchen.api.common.exception.ForbiddenException;
 import com.tezukitchen.api.common.exception.ResourceNotFoundException;
+import com.tezukitchen.api.restaurant.dto.request.AddRestaurantImageRequest;
 import com.tezukitchen.api.restaurant.dto.request.CreateRestaurantRequest;
 import com.tezukitchen.api.restaurant.dto.request.UpdateRestaurantRequest;
+import com.tezukitchen.api.restaurant.dto.response.RestaurantImageResponse;
 import com.tezukitchen.api.restaurant.dto.response.RestaurantResponse;
 import com.tezukitchen.api.restaurant.entity.Restaurant;
+import com.tezukitchen.api.restaurant.entity.RestaurantImage;
+import com.tezukitchen.api.restaurant.repository.RestaurantImageRepository;
 import com.tezukitchen.api.restaurant.repository.RestaurantRepository;
+import com.tezukitchen.api.common.exception.BadRequestException;
 import com.tezukitchen.api.user.entity.User;
 import com.tezukitchen.api.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -22,11 +27,14 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
     private final UserRepository userRepository;
+    private final RestaurantImageRepository restaurantImageRepository;
 
     public RestaurantServiceImpl(RestaurantRepository restaurantRepository,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  RestaurantImageRepository restaurantImageRepository) {
         this.restaurantRepository = restaurantRepository;
         this.userRepository = userRepository;
+        this.restaurantImageRepository = restaurantImageRepository;
     }
 
     @Override
@@ -98,6 +106,55 @@ public class RestaurantServiceImpl implements RestaurantService {
         restaurantRepository.delete(restaurant);
     }
 
+    @Override
+    @Transactional
+    public RestaurantImageResponse addImage(UUID authenticatedUserId, UUID restaurantId, AddRestaurantImageRequest request) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant", "id", restaurantId));
+
+        verifyOwnership(authenticatedUserId, restaurant);
+
+        if (restaurantImageRepository.countByRestaurantId(restaurantId) >= 7) {
+            throw new BadRequestException("Maximum 7 images allowed per restaurant");
+        }
+
+        RestaurantImage image = RestaurantImage.builder()
+                .restaurant(restaurant)
+                .imageUrl(request.getImageUrl())
+                .cloudinaryPublicId(request.getCloudinaryPublicId())
+                .imageType(request.getImageType())
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .build();
+
+        image = restaurantImageRepository.save(image);
+
+        return RestaurantImageResponse.builder()
+                .id(image.getId())
+                .imageUrl(image.getImageUrl())
+                .cloudinaryPublicId(image.getCloudinaryPublicId())
+                .imageType(image.getImageType())
+                .displayOrder(image.getDisplayOrder())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void removeImage(UUID authenticatedUserId, UUID restaurantId, UUID imageId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant", "id", restaurantId));
+
+        verifyOwnership(authenticatedUserId, restaurant);
+
+        RestaurantImage image = restaurantImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("RestaurantImage", "id", imageId));
+
+        if (!image.getRestaurant().getId().equals(restaurantId)) {
+            throw new BadRequestException("Image does not belong to this restaurant");
+        }
+
+        restaurantImageRepository.delete(image);
+    }
+
     private void verifyOwnership(UUID authenticatedUserId, Restaurant restaurant) {
         if (!restaurant.getOwner().getId().equals(authenticatedUserId)) {
             throw new ForbiddenException("You are not the owner of this restaurant");
@@ -105,6 +162,32 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     private RestaurantResponse mapToResponse(Restaurant restaurant) {
+        String logoUrl = null;
+        String bannerUrl = null;
+        if (restaurant.getImages() != null) {
+            logoUrl = restaurant.getImages().stream()
+                    .filter(img -> "LOGO".equals(img.getImageType()))
+                    .map(RestaurantImage::getImageUrl)
+                    .findFirst()
+                    .orElse(null);
+            bannerUrl = restaurant.getImages().stream()
+                    .filter(img -> "BANNER".equals(img.getImageType()))
+                    .map(RestaurantImage::getImageUrl)
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        List<RestaurantImageResponse> imageResponses = restaurant.getImages() != null ?
+                restaurant.getImages().stream()
+                        .map(img -> RestaurantImageResponse.builder()
+                                .id(img.getId())
+                                .imageUrl(img.getImageUrl())
+                                .cloudinaryPublicId(img.getCloudinaryPublicId())
+                                .imageType(img.getImageType())
+                                .displayOrder(img.getDisplayOrder())
+                                .build())
+                        .toList() : List.of();
+
         return RestaurantResponse.builder()
                 .id(restaurant.getId())
                 .ownerId(restaurant.getOwner().getId())
@@ -114,6 +197,9 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .location(restaurant.getLocation())
                 .isOpen(restaurant.isOpen())
                 .createdAt(restaurant.getCreatedAt())
+                .logoUrl(logoUrl)
+                .bannerUrl(bannerUrl)
+                .images(imageResponses)
                 .build();
     }
 }
