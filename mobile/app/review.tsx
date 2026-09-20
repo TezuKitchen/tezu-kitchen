@@ -45,8 +45,7 @@ export default function ReviewScreen() {
     setError('');
 
     try {
-      await api.post('/reviews', {
-        restaurantId,
+      await api.post(`/reviews/restaurant/${restaurantId}`, {
         rating,
         comment: comment.trim()
       });

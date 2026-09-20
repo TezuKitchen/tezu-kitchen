@@ -24,7 +24,7 @@ services:
       network: host
     container_name: tezukitchen-backend
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/tezukitchen
+      DATABASE_URL: ${DATABASE_URL:-jdbc:postgresql://postgres:5432/tezukitchen}
       DATABASE_USERNAME: ${DATABASE_USERNAME:-tezukitchen}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-changeme}
       JWT_SECRET: ${JWT_SECRET}

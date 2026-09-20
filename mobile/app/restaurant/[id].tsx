@@ -49,14 +49,14 @@ export default function RestaurantMenuScreen() {
         ]);
         setMenuItems(menuRes.data.data);
         setRestaurant(restRes.data.data);
-        setReviews(reviewsRes.data.data.content || []);
+        setReviews(reviewsRes.data.data || []);
 
 
         if (user) {
           try {
             const favRes = await api.get('/favorites');
             const favs = favRes.data.data || [];
-            setIsFavorite(favs.some((fav: any) => fav.id === id));
+            setIsFavorite(favs.some((fav: any) => fav.restaurantId === id));
           } catch (e) {
             console.error('Failed to fetch favorites', e);
           }
@@ -78,7 +78,7 @@ export default function RestaurantMenuScreen() {
     }
     setToggleFavLoading(true);
     try {
-      await api.post(`/favorites/toggle?restaurantId=${id}`);
+      await api.post(`/favorites/restaurant/${id}/toggle`);
       setIsFavorite(!isFavorite);
     } catch (e) {
       console.error('Failed to toggle favorite', e);

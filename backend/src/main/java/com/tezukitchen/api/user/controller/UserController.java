@@ -25,6 +25,13 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<UserResponse>> getProfile() {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        UserResponse response = userService.getUserById(authenticatedUserId);
+        return ResponseEntity.ok(ApiResponse.success("Profile retrieved successfully", response));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
         UserResponse response = userService.getUserById(id);

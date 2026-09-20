@@ -83,11 +83,10 @@ export default function StudentHome() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.favoriteCard}
-              onPress={() => router.push(`/restaurant/${item.id}`)}
+              onPress={() => router.push(`/restaurant/${item.restaurantId}`)}
               activeOpacity={0.8}
             >
-              <Text style={styles.favoriteName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.favoriteTags} numberOfLines={1}>{item.description}</Text>
+              <Text style={styles.favoriteName} numberOfLines={1}>{item.restaurantName}</Text>
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}

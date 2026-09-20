@@ -1,0 +1,7 @@
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255);
+
+CREATE TABLE IF NOT EXISTS user_addresses (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    address TEXT NOT NULL
+);

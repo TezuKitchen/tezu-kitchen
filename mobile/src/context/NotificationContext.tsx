@@ -77,15 +77,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
         if (token) {
           setPushToken(token);
-          // Fetch existing profile to preserve other fields
-          const profileRes = await api.get('/users/profile');
-          const profile = profileRes.data.data;
-          
-          await api.put('/users/profile', {
-            name: profile.name,
-            phone: profile.phone,
-            avatarUrl: profile.avatarUrl,
-            savedAddresses: profile.savedAddresses,
+          // Use the dedicated push-token endpoint
+          await api.put('/users/push-token', {
             expoPushToken: token,
           });
         }
