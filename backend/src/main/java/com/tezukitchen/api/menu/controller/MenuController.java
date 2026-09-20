@@ -1,8 +1,10 @@
 package com.tezukitchen.api.menu.controller;
 
 import com.tezukitchen.api.common.response.ApiResponse;
+import com.tezukitchen.api.menu.dto.request.AddMenuItemImageRequest;
 import com.tezukitchen.api.menu.dto.request.CreateMenuItemRequest;
 import com.tezukitchen.api.menu.dto.request.UpdateMenuItemRequest;
+import com.tezukitchen.api.menu.dto.response.MenuItemImageResponse;
 import com.tezukitchen.api.menu.dto.response.MenuItemResponse;
 import com.tezukitchen.api.menu.service.MenuService;
 import jakarta.validation.Valid;
@@ -67,6 +69,25 @@ public class MenuController {
     public ResponseEntity<Void> deleteMenuItem(@PathVariable UUID id) {
         UUID authenticatedUserId = getAuthenticatedUserId();
         menuService.deleteMenuItem(authenticatedUserId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/images")
+    public ResponseEntity<ApiResponse<MenuItemImageResponse>> addImage(
+            @PathVariable UUID id,
+            @Valid @RequestBody AddMenuItemImageRequest request) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        MenuItemImageResponse response = menuService.addImage(authenticatedUserId, id, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Image added successfully", response));
+    }
+
+    @DeleteMapping("/{id}/images/{imageId}")
+    public ResponseEntity<Void> removeImage(
+            @PathVariable UUID id,
+            @PathVariable UUID imageId) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        menuService.removeImage(authenticatedUserId, id, imageId);
         return ResponseEntity.noContent().build();
     }
 
