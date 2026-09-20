@@ -4,6 +4,7 @@ import com.tezukitchen.api.favorite.dto.FavoriteRestaurantResponse;
 import com.tezukitchen.api.favorite.entity.FavoriteRestaurant;
 import com.tezukitchen.api.favorite.repository.FavoriteRestaurantRepository;
 import com.tezukitchen.api.restaurant.entity.Restaurant;
+import com.tezukitchen.api.restaurant.entity.RestaurantImage;
 import com.tezukitchen.api.restaurant.repository.RestaurantRepository;
 import com.tezukitchen.api.user.entity.User;
 import com.tezukitchen.api.user.repository.UserRepository;
@@ -51,10 +52,20 @@ public class FavoriteService {
     }
 
     private FavoriteRestaurantResponse mapToResponse(FavoriteRestaurant favorite) {
+        String logoUrl = null;
+        if (favorite.getRestaurant().getImages() != null) {
+            logoUrl = favorite.getRestaurant().getImages().stream()
+                    .filter(img -> "LOGO".equals(img.getImageType()))
+                    .map(RestaurantImage::getImageUrl)
+                    .findFirst()
+                    .orElse(null);
+        }
+
         return FavoriteRestaurantResponse.builder()
                 .id(favorite.getId())
                 .restaurantId(favorite.getRestaurant().getId())
                 .restaurantName(favorite.getRestaurant().getName())
+                .restaurantLogoUrl(logoUrl)
                 .createdAt(favorite.getCreatedAt())
                 .build();
     }
