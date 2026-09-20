@@ -5,6 +5,11 @@ spring:
   application:
     name: tezukitchen-api
 
+  servlet:
+    multipart:
+      max-file-size: 3MB
+      max-request-size: 3MB
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tezukitchen}
     username: ${DATABASE_USERNAME:tezukitchen}
@@ -24,6 +29,7 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    ignore-migration-patterns: "*:missing"
 
 # JWT Configuration
 app:
@@ -38,6 +44,11 @@ app:
   razorpay:
     key-id: ${RAZORPAY_KEY_ID:rzp_test_Tai04XqY8wEdl3}
     key-secret: ${RAZORPAY_KEY_SECRET:2kNIUiONJbjDn7PGstqjEYyN}
+
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
 
 # API Documentation
 springdoc:
