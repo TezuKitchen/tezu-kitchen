@@ -21,6 +21,8 @@ interface Restaurant {
   description: string;
   location: string;
   open: boolean;
+  bannerUrl?: string;
+  logoUrl?: string;
 }
 
 export default function StudentHome() {
@@ -74,7 +76,7 @@ export default function StudentHome() {
     if (favorites.length === 0) return null;
     return (
       <View style={styles.favoritesSection}>
-        <Text style={styles.sectionTitle}>Your Favorites</Text>
+        <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>Your Favorites</Text>
         <FlatList
           data={favorites}
           horizontal
@@ -114,7 +116,7 @@ export default function StudentHome() {
           ListHeaderComponent={
             <>
               {renderFavorites()}
-              <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>All Restaurants</Text>
+              <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg, marginTop: spacing.md }]}>All Restaurants</Text>
             </>
           }
           ListEmptyComponent={
@@ -130,6 +132,8 @@ export default function StudentHome() {
                 description={item.description}
                 location={item.location}
                 isOpen={item.open}
+                bannerUrl={item.bannerUrl}
+                logoUrl={item.logoUrl}
                 onPress={() => router.push(`/restaurant/${item.id}`)}
               />
             </View>
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   listContent: {
-    padding: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: 100, // padding for bottom tab bar
   },
   sectionTitle: {

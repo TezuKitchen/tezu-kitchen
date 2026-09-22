@@ -11,5 +11,6 @@ public class FavoriteRestaurantResponse {
     private UUID id;
     private UUID restaurantId;
     private String restaurantName;
+    private String restaurantLogoUrl;
     private Instant createdAt;
 }

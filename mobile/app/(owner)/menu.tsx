@@ -7,16 +7,19 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   RefreshControl,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { Camera } from 'lucide-react-native';
+import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
 
 interface Restaurant {
   id: string;
@@ -32,7 +35,7 @@ interface MenuItemResponse {
   price: number;
   category: string;
   available: boolean;
-  imageUrl?: string;
+  primaryImageUrl?: string;
 }
 
 export default function OwnerMenuScreen() {
@@ -52,6 +55,8 @@ export default function OwnerMenuScreen() {
   const [itemDescription, setItemDescription] = useState('');
   const [itemPrice, setItemPrice] = useState('');
   const [itemCategory, setItemCategory] = useState('');
+  const [itemImageUri, setItemImageUri] = useState<string | null>(null);
+  const [itemImageUrl, setItemImageUrl] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user?.userId) return;
@@ -166,12 +171,16 @@ export default function OwnerMenuScreen() {
       setItemDescription(item.description || '');
       setItemPrice(item.price.toString());
       setItemCategory(item.category || '');
+      setItemImageUrl(item.primaryImageUrl || null);
+      setItemImageUri(null);
     } else {
       setEditingId(null);
       setItemName('');
       setItemDescription('');
       setItemPrice('');
       setItemCategory('');
+      setItemImageUrl(null);
+      setItemImageUri(null);
     }
     setModalVisible(true);
   };
@@ -190,6 +199,7 @@ export default function OwnerMenuScreen() {
 
     setSavingItem(true);
     try {
+      let targetId = editingId;
       if (editingId) {
         // Edit existing
         await api.put(`/menu/${editingId}`, {
@@ -201,14 +211,27 @@ export default function OwnerMenuScreen() {
         });
       } else {
         // Create new
-        await api.post('/menu', {
+        const response = await api.post('/menu', {
           restaurantId: restaurant.id,
           name: itemName,
           description: itemDescription,
           price: priceNum,
           category: itemCategory,
         });
+        targetId = response.data.data.id;
       }
+      
+      // Upload image if selected
+      if (itemImageUri) {
+        const result = await uploadImage(itemImageUri, 'menu-items');
+        await api.post(`/menu/${targetId}/images`, {
+          imageUrl: result.url,
+          cloudinaryPublicId: result.publicId,
+          isPrimary: true,
+          displayOrder: 0
+        });
+      }
+
       setModalVisible(false);
       fetchData(); // Refresh list to get new IDs etc.
     } catch (error) {
@@ -229,7 +252,7 @@ export default function OwnerMenuScreen() {
 
   if (!restaurant) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.emptyContainer}>
           <MaterialIcons name="store" size={64} color={colors.border} />
           <Text style={styles.emptyTitle}>No Store Found</Text>
@@ -242,7 +265,7 @@ export default function OwnerMenuScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Menu Management</Text>
         <Text style={styles.headerSubtitle}>Long press an item to edit or delete</Text>
@@ -268,34 +291,43 @@ export default function OwnerMenuScreen() {
                   onLongPress={() => handleLongPress(item)}
                   activeOpacity={0.8}
                 >
-                  <View style={styles.itemContent}>
-                    <View style={styles.itemHeader}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemPrice}>₹{item.price}</Text>
-                    </View>
-                    {!!item.description && (
-                      <Text style={styles.itemDescription} numberOfLines={2}>
-                        {item.description}
-                      </Text>
-                    )}
-                    <View style={styles.itemFooter}>
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{item.category}</Text>
+                  <View style={styles.itemRow}>
+                    <View style={styles.itemContent}>
+                      <View style={styles.itemHeader}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemPrice}>₹{item.price}</Text>
                       </View>
-                      <View style={styles.availabilityRow}>
-                        <Text style={[styles.availabilityText, !item.available && styles.unavailableText]}>
-                          {item.available ? 'Available' : 'Unavailable'}
+                      {!!item.description && (
+                        <Text style={styles.itemDescription} numberOfLines={2}>
+                          {item.description}
                         </Text>
-                        <Switch
-                          trackColor={{ false: colors.border, true: colors.primaryHover }}
-                          thumbColor={item.available ? colors.primary : colors.surface}
-                          ios_backgroundColor={colors.border}
-                          onValueChange={(val) => toggleAvailability(item, val)}
-                          value={item.available}
-                          style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-                        />
+                      )}
+                      <View style={styles.itemFooter}>
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>{item.category}</Text>
+                        </View>
+                        <View style={styles.availabilityRow}>
+                          <Text style={[styles.availabilityText, !item.available && styles.unavailableText]}>
+                            {item.available ? 'Available' : 'Unavailable'}
+                          </Text>
+                          <Switch
+                            trackColor={{ false: colors.border, true: colors.primaryHover }}
+                            thumbColor={item.available ? colors.primary : colors.surface}
+                            ios_backgroundColor={colors.border}
+                            onValueChange={(val) => toggleAvailability(item, val)}
+                            value={item.available}
+                            style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                          />
+                        </View>
                       </View>
                     </View>
+                    {item.primaryImageUrl && (
+                      <Image
+                        source={{ uri: getTransformedUrl(item.primaryImageUrl, 'menu-item') }}
+                        style={styles.itemImage}
+                        contentFit="cover"
+                      />
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -321,6 +353,30 @@ export default function OwnerMenuScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.modalScroll}>
+              <View style={styles.imagePickerContainer}>
+                <Text style={styles.label}>Item Photo</Text>
+                <TouchableOpacity 
+                  style={styles.imagePicker} 
+                  onPress={async () => {
+                    const uri = await pickImage({ aspect: [1, 1] });
+                    if (uri) setItemImageUri(uri);
+                  }}
+                >
+                  {itemImageUri || itemImageUrl ? (
+                    <Image
+                      source={{ uri: itemImageUri || getTransformedUrl(itemImageUrl!, 'menu-item') }}
+                      style={styles.imagePreview}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Camera size={24} color={colors.textMuted} />
+                      <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Item Name</Text>
                 <TextInput
@@ -482,6 +538,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   itemContent: {
     flex: 1,
   },
@@ -515,6 +576,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: spacing.xs,
+  },
+  itemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: layout.radius.md,
   },
   badge: {
     backgroundColor: colors.borderSubtle,
@@ -582,6 +648,33 @@ const styles = StyleSheet.create({
   },
   modalScroll: {
     padding: spacing.lg,
+  },
+  imagePickerContainer: {
+    marginBottom: spacing.lg,
+  },
+  imagePicker: {
+    height: 120,
+    backgroundColor: colors.surface,
+    borderRadius: layout.radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  imagePlaceholderText: {
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
   },
   inputGroup: {
     marginBottom: spacing.lg,

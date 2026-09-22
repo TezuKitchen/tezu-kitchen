@@ -13,9 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, User, MapPin, Plus, Trash2, Camera } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
+import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
 
 const showAlert = (title: string, message: string, onOk?: () => void) => {
   if (Platform.OS === 'web') {
@@ -30,7 +32,7 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -38,6 +40,8 @@ export default function EditProfileScreen() {
   const [addresses, setAddresses] = useState<string[]>([]);
   const [newAddress, setNewAddress] = useState('');
   
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -72,6 +76,23 @@ export default function EditProfileScreen() {
     setAddresses(updated);
   };
 
+  const handleChangeAvatar = async () => {
+    const uri = await pickImage({ aspect: [1, 1] });
+    if (uri) {
+      setAvatarUri(uri);
+      setUploading(true);
+      try {
+        const result = await uploadImage(uri, 'avatars');
+        setAvatarUrl(result.url);
+      } catch (e) {
+        showAlert('Error', 'Failed to upload image');
+        setAvatarUri(null); // Reset if upload failed
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       showAlert('Error', 'Name cannot be empty');
@@ -80,12 +101,14 @@ export default function EditProfileScreen() {
     
     setIsSaving(true);
     try {
-      await api.put('/users/profile', {
+      const response = await api.put('/users/profile', {
         name,
         phone,
         avatarUrl,
         savedAddresses: addresses
       });
+      
+      // Update local user context if possible, skipping here since login requires token
       
       showAlert('Success', 'Profile updated successfully!', () => {
         router.back();
@@ -121,14 +144,25 @@ export default function EditProfileScreen() {
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
           <View style={styles.avatarPlaceholder}>
-            {avatarUrl ? (
-               // Would ideally use Image component here, using User icon for fallback
-               <User size={48} color={colors.textMuted} />
+            {avatarUri || avatarUrl ? (
+               <Image
+                 source={{ uri: avatarUri || getTransformedUrl(avatarUrl, 'avatar-lg') }}
+                 style={styles.avatarImage}
+                 contentFit="cover"
+               />
             ) : (
               <User size={48} color={colors.textMuted} />
             )}
-            <TouchableOpacity style={styles.changeAvatarBtn}>
-              <Camera size={16} color={colors.surface} />
+            <TouchableOpacity 
+              style={styles.changeAvatarBtn} 
+              onPress={handleChangeAvatar}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Camera size={16} color={colors.surface} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -249,6 +283,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 2,
     borderColor: colors.borderSubtle,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
   },
   changeAvatarBtn: {
     position: 'absolute',

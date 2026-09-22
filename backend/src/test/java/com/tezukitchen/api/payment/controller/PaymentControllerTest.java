@@ -9,6 +9,7 @@ import com.tezukitchen.api.common.exception.ResourceNotFoundException;
 import com.tezukitchen.api.payment.dto.request.CreatePaymentRequest;
 import com.tezukitchen.api.payment.dto.response.PaymentResponse;
 import com.tezukitchen.api.payment.service.PaymentService;
+import com.tezukitchen.api.payment.service.RazorpayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,6 +50,9 @@ class PaymentControllerTest {
 
     @MockitoBean
     private PaymentService paymentService;
+
+    @MockitoBean
+    private RazorpayService razorpayService;
 
     @MockitoBean
     private JwtService jwtService;

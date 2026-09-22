@@ -1,5 +1,8 @@
 package com.tezukitchen.api.menu.service;
 
+import com.tezukitchen.api.menu.dto.request.AddMenuItemImageRequest;
+import com.tezukitchen.api.menu.dto.response.MenuItemImageResponse;
+
 import com.tezukitchen.api.menu.dto.request.CreateMenuItemRequest;
 import com.tezukitchen.api.menu.dto.request.UpdateMenuItemRequest;
 import com.tezukitchen.api.menu.dto.response.MenuItemResponse;
@@ -14,4 +17,6 @@ public interface MenuService {
     List<MenuItemResponse> getAvailableMenuItems(UUID restaurantId);
     MenuItemResponse updateMenuItem(UUID authenticatedUserId, UUID menuItemId, UpdateMenuItemRequest request);
     void deleteMenuItem(UUID authenticatedUserId, UUID menuItemId);
+    MenuItemImageResponse addImage(UUID authenticatedUserId, UUID menuItemId, AddMenuItemImageRequest request);
+    void removeImage(UUID authenticatedUserId, UUID menuItemId, UUID imageId);
 }

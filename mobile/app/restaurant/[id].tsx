@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   TouchableOpacity
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Star, Clock, ShoppingBag, Heart } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
+import { getTransformedUrl } from '../../src/services/imageService';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
 import { useCart } from '../../src/context/CartContext';
 import { useAuth } from '../../src/context/AuthContext';
@@ -24,13 +26,20 @@ interface RestaurantDetails {
   open: boolean;
   averageRating?: number;
   reviewCount?: number;
+  bannerUrl?: string;
+  logoUrl?: string;
+  images?: any[];
 }
 
 export default function RestaurantMenuScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const cart = useCart();
   const { user } = useAuth();
+  
+  const heroHeight = Math.max(220, 180 + insets.top);
+  const topButtonInset = Math.max(insets.top, 16) + 8;
   
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [restaurant, setRestaurant] = useState<RestaurantDetails | null>(null);
@@ -89,20 +98,30 @@ export default function RestaurantMenuScreen() {
 
   const renderHeader = () => (
     <View>
-      <View style={styles.heroPlaceholder}>
+      <View style={[styles.heroPlaceholder, { height: heroHeight }]}>
+        {restaurant?.bannerUrl ? (
+          <Image
+            source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-hero') }}
+            style={[styles.heroImage, { height: heroHeight }]}
+            contentFit="cover"
+            transition={300}
+          />
+        ) : null}
         <TouchableOpacity 
-          style={styles.backButton}
+          style={[styles.backButton, { top: topButtonInset }]}
           onPress={() => router.back()}
+          activeOpacity={0.8}
         >
-          <ArrowLeft size={24} color={colors.text} />
+          <ArrowLeft size={22} color={colors.text} />
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.favoriteButton}
+          style={[styles.favoriteButton, { top: topButtonInset }]}
           onPress={toggleFavorite}
           disabled={toggleFavLoading}
+          activeOpacity={0.8}
         >
-          <Heart size={24} color={isFavorite ? colors.primary : colors.text} fill={isFavorite ? colors.primary : 'transparent'} />
+          <Heart size={22} color={isFavorite ? colors.primary : colors.text} fill={isFavorite ? colors.primary : 'transparent'} />
         </TouchableOpacity>
       </View>
       
@@ -136,7 +155,7 @@ export default function RestaurantMenuScreen() {
       <View style={styles.reviewsHeader}>
         <Text style={styles.menuTitle}>Reviews</Text>
         {user && (
-          <TouchableOpacity onPress={() => router.push(`/review?restaurantId=${id}`)}>
+          <TouchableOpacity onPress={() => router.push(`/review?restaurantId=${id}` as any)}>
             <Text style={styles.leaveReviewText}>Leave a Review</Text>
           </TouchableOpacity>
         )}
@@ -170,7 +189,7 @@ export default function RestaurantMenuScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -180,7 +199,10 @@ export default function RestaurantMenuScreen() {
           <FlatList
             data={menuItems}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: 110 + Math.max(insets.bottom, 16) }
+            ]}
             ListHeaderComponent={renderHeader}
             ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
@@ -206,7 +228,10 @@ export default function RestaurantMenuScreen() {
             }
           />
           {cart.totalItems > 0 && (
-            <View style={styles.floatingCartContainer}>
+            <View style={[
+              styles.floatingCartContainer,
+              { bottom: Math.max(insets.bottom, 12) + spacing.md }
+            ]}>
               <TouchableOpacity 
                 style={styles.floatingCartButton}
                 onPress={() => router.push('/cart')}
@@ -227,7 +252,7 @@ export default function RestaurantMenuScreen() {
           )}
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -237,33 +262,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   heroPlaceholder: {
-    height: 200,
     backgroundColor: colors.borderSubtle,
     position: 'relative',
+    overflow: 'hidden',
+  },
+  heroImage: {
+    width: '100%',
   },
   backButton: {
     position: 'absolute',
-    top: spacing.xl,
     left: spacing.lg,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...layout.shadows.sm,
+    zIndex: 10,
+    ...layout.shadows.md,
   },
   favoriteButton: {
     position: 'absolute',
-    top: spacing.xl,
     right: spacing.lg,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-    ...layout.shadows.sm,
+    zIndex: 10,
+    ...layout.shadows.md,
   },
   restaurantInfo: {
     padding: spacing.xl,

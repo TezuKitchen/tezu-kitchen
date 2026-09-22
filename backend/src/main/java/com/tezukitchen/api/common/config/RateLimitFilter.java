@@ -38,8 +38,9 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    /** Maximum requests allowed per window. */
-    private static final int MAX_REQUESTS = 5;
+    /** Maximum requests allowed per window (default 30/min). */
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.max-requests:30}")
+    private int maxRequests = 30;
 
     /** Window duration in milliseconds (1 minute). */
     private static final long WINDOW_MS = 60_000L;
@@ -80,7 +81,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             String clientIp = getClientIp(request);
             RateBucket bucket = buckets.computeIfAbsent(clientIp, k -> new RateBucket());
 
-            if (!bucket.tryConsume()) {
+            if (!bucket.tryConsume(maxRequests)) {
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
 
@@ -139,7 +140,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
          *
          * @return true if the request is allowed, false if rate limit exceeded
          */
-        synchronized boolean tryConsume() {
+        synchronized boolean tryConsume(int maxAllowed) {
             long now = System.currentTimeMillis();
             this.lastRequestTime = now;
 
@@ -149,7 +150,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 count = 0;
             }
 
-            if (count < MAX_REQUESTS) {
+            if (count < maxAllowed) {
                 count++;
                 return true;
             }

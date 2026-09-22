@@ -7,15 +7,18 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Camera } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
 
 interface Restaurant {
   id: string;
@@ -25,6 +28,8 @@ interface Restaurant {
   ownerId: string;
   isOpen: boolean;
   imageUrl?: string;
+  bannerUrl?: string;
+  logoUrl?: string;
 }
 
 export default function OwnerStoreScreen() {
@@ -39,6 +44,7 @@ export default function OwnerStoreScreen() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchRestaurant = useCallback(async () => {
     if (!user?.userId) return;
@@ -128,6 +134,28 @@ export default function OwnerStoreScreen() {
     }
   };
 
+  const handleUpdateImage = async (type: 'BANNER' | 'LOGO') => {
+    const uri = await pickImage({ aspect: type === 'BANNER' ? [16, 9] : [1, 1] });
+    if (!uri || !restaurant) return;
+    setUploadingImage(true);
+    try {
+      const result = await uploadImage(uri, 'restaurants');
+      await api.post(`/restaurants/${restaurant.id}/images`, { 
+        imageUrl: result.url, 
+        cloudinaryPublicId: result.publicId, 
+        imageType: type, 
+        displayOrder: 0 
+      });
+      await fetchRestaurant();
+      Alert.alert('Success', `${type} updated successfully`);
+    } catch (error) {
+      console.error('Error uploading image', error);
+      Alert.alert('Error', 'Failed to update image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -207,7 +235,7 @@ export default function OwnerStoreScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
@@ -238,6 +266,71 @@ export default function OwnerStoreScreen() {
                 {!!restaurant.description && (
                   <Text style={styles.storeDescription}>{restaurant.description}</Text>
                 )}
+
+                <View style={styles.divider} />
+
+                <View style={styles.imagesSection}>
+                  <Text style={styles.imagesTitle}>Store Images</Text>
+                  
+                  <View style={styles.imageRow}>
+                    <View style={styles.imageBox}>
+                      <Text style={styles.imageLabel}>Banner</Text>
+                      <View style={styles.imageContainer}>
+                        {restaurant.bannerUrl ? (
+                          <Image
+                            source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-card') }}
+                            style={styles.storeImage}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={styles.imagePlaceholder}>
+                            <MaterialIcons name="image" size={24} color={colors.textMuted} />
+                          </View>
+                        )}
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.imageUploadBtn} 
+                        onPress={() => handleUpdateImage('BANNER')}
+                        disabled={uploadingImage}
+                      >
+                        <Camera size={16} color={colors.primary} />
+                        <Text style={styles.imageUploadText}>Change Banner</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.imageBox}>
+                      <Text style={styles.imageLabel}>Logo</Text>
+                      <View style={[styles.imageContainer, styles.logoContainer]}>
+                        {restaurant.logoUrl ? (
+                          <Image
+                            source={{ uri: getTransformedUrl(restaurant.logoUrl, 'avatar-lg') }}
+                            style={styles.storeLogo}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={[styles.imagePlaceholder, styles.storeLogo]}>
+                            <MaterialIcons name="store" size={24} color={colors.textMuted} />
+                          </View>
+                        )}
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.imageUploadBtn} 
+                        onPress={() => handleUpdateImage('LOGO')}
+                        disabled={uploadingImage}
+                      >
+                        <Camera size={16} color={colors.primary} />
+                        <Text style={styles.imageUploadText}>Change Logo</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  {uploadingImage && (
+                    <View style={styles.uploadingOverlay}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.uploadingText}>Uploading...</Text>
+                    </View>
+                  )}
+                </View>
 
                 <View style={styles.divider} />
 
@@ -347,6 +440,94 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.borderSubtle,
     marginVertical: spacing.lg,
+  },
+  imagesSection: {
+    marginBottom: spacing.sm,
+    position: 'relative',
+  },
+  imagesTitle: {
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.md,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  imageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  imageBox: {
+    flex: 1,
+  },
+  imageLabel: {
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 100,
+    backgroundColor: colors.background,
+    borderRadius: layout.radius.md,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  storeImage: {
+    width: '100%',
+    height: '100%',
+  },
+  storeLogo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageUploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  imageUploadText: {
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.xs,
+    color: colors.primary,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  uploadingText: {
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.sm,
+    color: colors.primary,
   },
   statusRow: {
     flexDirection: 'row',

@@ -4,6 +4,8 @@ import com.tezukitchen.api.restaurant.entity.Restaurant;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -34,4 +36,9 @@ public class MenuItem {
 
     @Column(nullable = false, length = 100)
     private String category;
+
+    @OneToMany(mappedBy = "menuItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<MenuItemImage> images = new ArrayList<>();
 }

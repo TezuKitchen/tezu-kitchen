@@ -49,8 +49,8 @@ export default function LoginScreen() {
         
         // Backend wraps the AuthResponse in an ApiResponse (so the actual data is in response.data.data)
         const authData = response.data.data;
-        const { accessToken, ...userData } = authData;
-        await login(accessToken, userData);
+        const { accessToken, refreshToken, ...userData } = authData;
+        await login(accessToken, userData, refreshToken);
         
         // Router will auto-redirect based on role in _layout/index
         if (userData.role === 'OWNER') {
@@ -70,8 +70,8 @@ export default function LoginScreen() {
         console.log("REGISTER RESPONSE:", JSON.stringify(response.data));
         
         const authData = response.data.data;
-        const { accessToken, ...userData } = authData;
-        await login(accessToken, userData);
+        const { accessToken, refreshToken, ...userData } = authData;
+        await login(accessToken, userData, refreshToken);
         
         if (userData.role === 'OWNER') {
           router.replace('/(owner)');
@@ -83,7 +83,9 @@ export default function LoginScreen() {
       console.error(error);
       
       let errorMessage = 'Something went wrong. Please try again.';
-      if (error.response?.data) {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Server response timed out. Please ensure the backend is running and reachable.';
+      } else if (error.response?.data) {
         const data = error.response.data;
         if (data.details && Array.isArray(data.details) && data.details.length > 0) {
           // Join validation errors with newlines
@@ -91,6 +93,8 @@ export default function LoginScreen() {
         } else if (data.message) {
           errorMessage = data.message;
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
