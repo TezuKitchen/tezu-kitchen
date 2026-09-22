@@ -10,10 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Bell } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { MapPin, Bell, User } from 'lucide-react-native';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import RestaurantCard from '../../src/components/RestaurantCard';
+import { useAuth } from '../../src/context/AuthContext';
+import { getTransformedUrl } from '../../src/services/imageService';
 
 interface Restaurant {
   id: string;
@@ -25,10 +28,19 @@ interface Restaurant {
   logoUrl?: string;
 }
 
+interface FavoriteRestaurant {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  restaurantLogoUrl?: string;
+  createdAt?: string;
+}
+
 export default function StudentHome() {
   const router = useRouter();
+  const { user } = useAuth();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [favorites, setFavorites] = useState<Restaurant[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -66,9 +78,28 @@ export default function StudentHome() {
           <Text style={styles.locationValue} numberOfLines={1}>Tezpur University Campus</Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.notificationBtn}>
-        <Bell size={20} color={colors.text} />
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        <TouchableOpacity style={styles.notificationBtn}>
+          <Bell size={20} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.profileBtn}
+          onPress={() => router.push('/(student)/profile' as any)}
+          activeOpacity={0.7}
+        >
+          {user?.avatarUrl ? (
+            <Image
+              source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-sm') }}
+              style={styles.profileAvatar}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
+              <User size={16} color={colors.textLight} />
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -182,6 +213,24 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colors.borderSubtle,
     borderRadius: 999,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  profileBtn: {
+    padding: 2,
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  profileAvatarPlaceholder: {
+    backgroundColor: colors.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     paddingTop: spacing.sm,

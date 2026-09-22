@@ -1,5 +1,6 @@
 package com.tezukitchen.api.user.service;
 
+import com.tezukitchen.api.user.dto.request.ChangePasswordRequest;
 import com.tezukitchen.api.user.dto.request.UpdateUserRequest;
 import com.tezukitchen.api.user.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
@@ -13,4 +14,5 @@ public interface UserService {
     Page<UserResponse> getAllUsers(Pageable pageable);
     void deleteUser(UUID authenticatedUserId, UUID targetUserId);
     void updatePushToken(UUID userId, String expoPushToken);
+    void changePassword(UUID userId, ChangePasswordRequest request);
 }

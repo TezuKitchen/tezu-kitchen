@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Search, ClipboardList, User } from 'lucide-react-native';
+import { Home, Search, ClipboardList, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../../src/theme';
 
@@ -50,9 +50,18 @@ export default function StudentLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
         }}
+      />
+      {/* Hide screens that shouldn't appear as tabs */}
+      <Tabs.Screen
+        name="edit-profile"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="change-password"
+        options={{ href: null }}
       />
     </Tabs>
   );

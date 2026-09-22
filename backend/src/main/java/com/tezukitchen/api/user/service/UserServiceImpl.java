@@ -1,13 +1,16 @@
 package com.tezukitchen.api.user.service;
 
+import com.tezukitchen.api.common.exception.BadRequestException;
 import com.tezukitchen.api.common.exception.ForbiddenException;
 import com.tezukitchen.api.common.exception.ResourceNotFoundException;
+import com.tezukitchen.api.user.dto.request.ChangePasswordRequest;
 import com.tezukitchen.api.user.dto.request.UpdateUserRequest;
 import com.tezukitchen.api.user.dto.response.UserResponse;
 import com.tezukitchen.api.user.entity.User;
 import com.tezukitchen.api.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +20,11 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -74,6 +79,20 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         user.setExpoPushToken(expoPushToken);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 

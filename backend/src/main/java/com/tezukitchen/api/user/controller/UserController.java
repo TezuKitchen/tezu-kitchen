@@ -1,6 +1,7 @@
 package com.tezukitchen.api.user.controller;
 
 import com.tezukitchen.api.common.response.ApiResponse;
+import com.tezukitchen.api.user.dto.request.ChangePasswordRequest;
 import com.tezukitchen.api.user.dto.request.UpdatePushTokenRequest;
 import com.tezukitchen.api.user.dto.request.UpdateUserRequest;
 import com.tezukitchen.api.user.dto.response.UserResponse;
@@ -59,6 +60,14 @@ public class UserController {
         UUID authenticatedUserId = getAuthenticatedUserId();
         UserResponse response = userService.updateUser(authenticatedUserId, authenticatedUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        userService.changePassword(authenticatedUserId, request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
     }
 
     @DeleteMapping("/{id}")
