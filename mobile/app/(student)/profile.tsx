@@ -18,10 +18,12 @@ import {
   Moon,
   Smartphone,
   Check,
-  X
+  X,
+  Bell
 } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme, ThemeMode } from '../../src/context/ThemeContext';
+import { useNotification } from '../../src/context/NotificationContext';
 import { typography, spacing, layout } from '../../src/theme';
 import { getTransformedUrl } from '../../src/services/imageService';
 
@@ -90,6 +92,7 @@ function MenuItem({
 
 export default function ProfileScreen() {
   const { user, logout, refreshProfile } = useAuth();
+  const { unreadCount } = useNotification();
   const { themeMode, isDark, colors, setThemeMode } = useTheme();
   const router = useRouter();
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -168,6 +171,14 @@ export default function ProfileScreen() {
               label="Appearance"
               subLabel={`Theme: ${getThemeModeLabel(themeMode)}${themeMode === 'system' ? (isDark ? ' (Dark)' : ' (Light)') : ''}`}
               onPress={() => setShowThemeModal(true)}
+            />
+            <View style={[styles.separator, { backgroundColor: colors.borderSubtle }]} />
+            <MenuItem
+              colors={colors}
+              icon={<Bell size={20} color={colors.primary} />}
+              label="Notifications"
+              subLabel={unreadCount > 0 ? `${unreadCount} new update${unreadCount > 1 ? 's' : ''}` : 'View order updates'}
+              onPress={() => router.push('/notifications' as any)}
             />
             <View style={[styles.separator, { backgroundColor: colors.borderSubtle }]} />
             <MenuItem

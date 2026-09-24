@@ -19,6 +19,7 @@ import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 import RestaurantCard from '../../src/components/RestaurantCard';
 import { useAuth } from '../../src/context/AuthContext';
+import { useNotification } from '../../src/context/NotificationContext';
 import { getTransformedUrl } from '../../src/services/imageService';
 
 interface Restaurant {
@@ -105,6 +106,7 @@ const DISH_CATEGORIES = [
 export default function StudentHome() {
   const router = useRouter();
   const { user, refreshProfile } = useAuth();
+  const { unreadCount } = useNotification();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -154,8 +156,14 @@ export default function StudentHome() {
         </View>
       </View>
       <View style={styles.headerActions}>
-        <TouchableOpacity style={styles.notificationBtn}>
+        <TouchableOpacity
+          style={styles.notificationBtn}
+          onPress={() => router.push('/notifications' as any)}
+          activeOpacity={0.7}
+          accessibilityLabel="Notifications"
+        >
           <Bell size={20} color={colors.text} />
+          {unreadCount > 0 && <View style={styles.unreadBadgeDot} />}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.profileBtn}
@@ -323,6 +331,18 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colors.borderSubtle,
     borderRadius: 999,
+    position: 'relative',
+  },
+  unreadBadgeDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
   },
   headerActions: {
     flexDirection: 'row',

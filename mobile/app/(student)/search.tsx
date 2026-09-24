@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -52,6 +53,8 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dishIndex, setDishIndex] = useState(0);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (q) {
@@ -61,10 +64,38 @@ export default function SearchScreen() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setDishIndex((prev) => (prev + 1) % POPULAR_DISHES.length);
-    }, 2500);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -20,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setDishIndex((prev) => (prev + 1) % POPULAR_DISHES.length);
+        slideAnim.setValue(20);
+
+        Animated.parallel([
+          Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 280,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 280,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    }, 2800);
+
     return () => clearInterval(timer);
-  }, []);
+  }, [slideAnim, fadeAnim]);
 
   const fetchRestaurants = async () => {
     try {
@@ -120,8 +151,7 @@ export default function SearchScreen() {
         <Search size={20} color={colors.textLight} style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder={`Search for "${POPULAR_DISHES[dishIndex]}"...`}
-          placeholderTextColor={colors.textLight}
+          placeholder=""
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
@@ -129,6 +159,23 @@ export default function SearchScreen() {
           autoCapitalize="none"
           clearButtonMode="never"
         />
+        {searchQuery.length === 0 && (
+          <View style={styles.animatedPlaceholderContainer} pointerEvents="none">
+            <Text style={styles.staticPlaceholderText}>Search for </Text>
+            <View style={styles.animatedDishClippingBox}>
+              <Animated.View
+                style={{
+                  transform: [{ translateY: slideAnim }],
+                  opacity: fadeAnim,
+                }}
+              >
+                <Text style={styles.animatedDishText} numberOfLines={1}>
+                  "{POPULAR_DISHES[dishIndex]}"
+                </Text>
+              </Animated.View>
+            </View>
+          </View>
+        )}
         {searchQuery.length > 0 && (
           <TouchableOpacity
             onPress={() => setSearchQuery('')}
@@ -243,6 +290,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderBottomColor: colors.borderSubtle,
   },
   searchBar: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -252,6 +300,31 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     ...layout.shadows.sm,
+  },
+  animatedPlaceholderContainer: {
+    position: 'absolute',
+    left: spacing.md + 20 + spacing.sm,
+    right: spacing.md + 30,
+    top: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  staticPlaceholderText: {
+    fontFamily: typography.fonts.body,
+    fontSize: typography.sizes.md,
+    color: colors.textLight,
+  },
+  animatedDishClippingBox: {
+    flex: 1,
+    height: 24,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  animatedDishText: {
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.md,
+    color: colors.textMuted,
   },
   searchIcon: {
     marginRight: spacing.sm,
