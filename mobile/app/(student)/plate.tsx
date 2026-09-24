@@ -31,9 +31,11 @@ import {
   RefreshCw
 } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
 import { useCart } from '../../src/context/CartContext';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { getTransformedUrl } from '../../src/services/imageService';
 import api from '../../src/services/api';
 
@@ -61,6 +63,8 @@ export default function PlateScreen() {
   const router = useRouter();
   const cart = useCart();
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   const [address, setAddress] = useState('');
   const [addressError, setAddressError] = useState('');
@@ -617,7 +621,7 @@ export default function PlateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -11,7 +11,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Star, Clock, ShoppingBag, Heart, UtensilsCrossed } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
+import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 import { getTransformedUrl } from '../../src/services/imageService';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
@@ -37,6 +39,8 @@ export default function RestaurantMenuScreen() {
   const insets = useSafeAreaInsets();
   const cart = useCart();
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   
   const heroHeight = Math.max(220, 180 + insets.top);
   const topButtonInset = Math.max(insets.top, 16) + 8;
@@ -260,7 +264,7 @@ export default function RestaurantMenuScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -291,7 +295,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,

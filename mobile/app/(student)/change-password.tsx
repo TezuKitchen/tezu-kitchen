@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
+import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 
 const showAlert = (title: string, message: string, onOk?: () => void) => {
@@ -28,6 +30,8 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -172,7 +176,7 @@ export default function ChangePasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

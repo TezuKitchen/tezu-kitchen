@@ -15,7 +15,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Banknote, AlertCircle } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
-import { colors, typography, spacing, layout } from '../src/theme';
+import { typography, spacing, layout } from '../src/theme';
+import { ThemeColors } from '../src/theme/colors';
+import { useTheme } from '../src/context/ThemeContext';
 import { useCart } from '../src/context/CartContext';
 import api from '../src/services/api';
 
@@ -41,6 +43,8 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 export default function CartScreen() {
   const router = useRouter();
   const cart = useCart();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [address, setAddress] = useState('');
   const [addressError, setAddressError] = useState('');
   const [orderError, setOrderError] = useState('');
@@ -496,7 +500,7 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

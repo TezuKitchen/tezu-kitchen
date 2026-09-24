@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MapPin, Star, Clock, Store } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { colors, typography, spacing, layout } from '../theme';
+import { typography, spacing, layout } from '../theme';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { getTransformedUrl } from '../services/imageService';
 
 interface RestaurantCardProps {
@@ -26,6 +28,9 @@ export default function RestaurantCard({
   logoUrl,
   onPress
 }: RestaurantCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity 
       style={styles.card} 
@@ -57,7 +62,7 @@ export default function RestaurantCard({
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
           <View style={styles.ratingBadge}>
             <Text style={styles.ratingText}>4.5</Text>
-            <Star size={12} color={colors.surface} fill={colors.surface} />
+            <Star size={12} color="#FFFFFF" fill="#FFFFFF" />
           </View>
         </View>
         
@@ -80,12 +85,14 @@ export default function RestaurantCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: layout.radius.lg,
     marginBottom: spacing.lg,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     ...layout.shadows.md,
   },
   image: {
@@ -111,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: layout.radius.sm,
   },
   closedText: {
-    color: colors.surface,
+    color: '#FFFFFF',
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.xs,
     letterSpacing: 1,
@@ -142,7 +149,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    color: colors.surface,
+    color: '#FFFFFF',
     fontFamily: typography.fonts.heading,
     fontSize: typography.sizes.xs,
   },

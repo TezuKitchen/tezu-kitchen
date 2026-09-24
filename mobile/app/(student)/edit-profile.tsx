@@ -14,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, User, MapPin, Plus, Trash2, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
+import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
@@ -33,6 +35,8 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, login } = useAuth();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -236,7 +240,7 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

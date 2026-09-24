@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { UtensilsCrossed } from 'lucide-react-native';
-import { colors, typography, spacing, layout } from '../theme';
+import { typography, spacing, layout } from '../theme';
+import { ThemeColors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 import { getTransformedUrl } from '../services/imageService';
 
 export interface MenuItem {
@@ -23,6 +25,9 @@ interface MenuItemCardProps {
 }
 
 export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuantity }: MenuItemCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={[styles.card, !item.available && styles.cardUnavailable]}>
       <View style={styles.details}>
@@ -41,7 +46,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
       <View style={styles.actionContainer}>
         {item.primaryImageUrl ? (
           <Image
-            source={{ uri: getTransformedUrl(item.primaryImageUrl, 'menu-card') }}
+            source={{ uri: getTransformedUrl(item.primaryImageUrl, 'menu-item') }}
             style={styles.image}
             contentFit="cover"
             transition={200}
@@ -84,7 +89,7 @@ export default function MenuItemCard({ item, onAdd, quantity = 0, onUpdateQuanti
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     flexDirection: 'row',
     paddingVertical: spacing.lg,
