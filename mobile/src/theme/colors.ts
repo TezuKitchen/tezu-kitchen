@@ -1,4 +1,4 @@
-export const colors = {
+export const lightColors = {
   // Brand
   primary: '#FF5722',
   primaryHover: '#E64A19',
@@ -34,3 +34,44 @@ export const colors = {
     cancelled: '#DC2626',  // Red
   }
 };
+
+export const darkColors = {
+  // Brand
+  primary: '#FF6E40',
+  primaryHover: '#FF5722',
+  secondary: '#10B981',
+  secondaryDark: '#059669',
+  tertiary: '#FBBF24',
+  
+  // Surfaces & Canvas
+  background: '#121214',
+  surface: '#1E1E24',
+  
+  // Text & Neutrals
+  text: '#F9FAFB',
+  textMuted: '#9CA3AF',
+  textLight: '#6B7280',
+  border: '#2E2E38',
+  borderSubtle: '#272730',
+  
+  // Functional / Semantic
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#60A5FA',
+
+  // Status Colors
+  status: {
+    placed: '#9CA3AF',     // Gray
+    accepted: '#60A5FA',   // Blue
+    preparing: '#FBBF24',  // Yellow
+    ready: '#34D399',      // Green
+    outForDelivery: '#FF6E40', // Orange
+    delivered: '#34D399',  // Green
+    cancelled: '#EF4444',  // Red
+  }
+};
+
+export const colors = lightColors;
+
+export type ThemeColors = typeof lightColors;

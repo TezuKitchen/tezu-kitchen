@@ -58,7 +58,11 @@ export default function RestaurantMenuScreen() {
         ]);
         setMenuItems(menuRes.data.data);
         setRestaurant(restRes.data.data);
-        setReviews(reviewsRes.data.data || []);
+        const reviewsPayload = reviewsRes.data?.data;
+        const reviewsList = Array.isArray(reviewsPayload) 
+          ? reviewsPayload 
+          : (Array.isArray(reviewsPayload?.content) ? reviewsPayload.content : []);
+        setReviews(reviewsList);
 
 
         if (user) {
@@ -160,7 +164,7 @@ export default function RestaurantMenuScreen() {
           </TouchableOpacity>
         )}
       </View>
-      {reviews.length === 0 ? (
+      {(!Array.isArray(reviews) || reviews.length === 0) ? (
         <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to review!</Text>
       ) : (
         reviews.map((review, index) => (

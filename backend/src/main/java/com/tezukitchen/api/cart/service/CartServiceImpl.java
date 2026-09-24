@@ -70,29 +70,28 @@ public class CartServiceImpl implements CartService {
 
         // If cart has items from a different restaurant, clear them out
         if (cart.getRestaurant() != null && !cart.getRestaurant().getId().equals(restaurant.getId())) {
-            cart.getItems().clear();
+            cartItemRepository.deleteByCartId(cart.getId());
         }
 
         cart.setRestaurant(restaurant);
+        cart = cartRepository.save(cart);
 
-        // Check if item already exists in cart
-        Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(i -> i.getMenuItem().getId().equals(menuItem.getId()))
-                .findFirst();
+        // Check if item already exists in database
+        Optional<CartItem> existingItem = cartItemRepository.findByCartIdAndMenuItemId(cart.getId(), menuItem.getId());
 
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
             item.setQuantity(item.getQuantity() + request.getQuantity());
+            cartItemRepository.save(item);
         } else {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
                     .menuItem(menuItem)
                     .quantity(request.getQuantity())
                     .build();
-            cart.getItems().add(newItem);
+            cartItemRepository.save(newItem);
         }
 
-        cart = cartRepository.save(cart);
         return mapToResponse(cart);
     }
 
@@ -102,31 +101,38 @@ public class CartServiceImpl implements CartService {
         Cart cart = getOrCreateCart(userId);
 
         if (quantity <= 0) {
-            cart.getItems().removeIf(item -> item.getMenuItem().getId().equals(menuItemId));
+            cartItemRepository.deleteByCartIdAndMenuItemId(cart.getId(), menuItemId);
         } else {
-            Optional<CartItem> existingItem = cart.getItems().stream()
-                    .filter(item -> item.getMenuItem().getId().equals(menuItemId))
-                    .findFirst();
+            Optional<CartItem> existingItem = cartItemRepository.findByCartIdAndMenuItemId(cart.getId(), menuItemId);
 
             if (existingItem.isPresent()) {
-                existingItem.get().setQuantity(quantity);
+                CartItem item = existingItem.get();
+                item.setQuantity(quantity);
+                cartItemRepository.save(item);
             } else {
                 MenuItem menuItem = menuItemRepository.findById(menuItemId)
                         .orElseThrow(() -> new ResourceNotFoundException("MenuItem", "id", menuItemId));
+
+                if (cart.getRestaurant() == null) {
+                    cart.setRestaurant(menuItem.getRestaurant());
+                    cart = cartRepository.save(cart);
+                }
+
                 CartItem newItem = CartItem.builder()
                         .cart(cart)
                         .menuItem(menuItem)
                         .quantity(quantity)
                         .build();
-                cart.getItems().add(newItem);
+                cartItemRepository.save(newItem);
             }
         }
 
-        if (cart.getItems().isEmpty()) {
+        List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
+        if (remainingItems.isEmpty()) {
             cart.setRestaurant(null);
+            cart = cartRepository.save(cart);
         }
 
-        cart = cartRepository.save(cart);
         return mapToResponse(cart);
     }
 
@@ -134,13 +140,14 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse removeItem(UUID userId, UUID menuItemId) {
         Cart cart = getOrCreateCart(userId);
-        cart.getItems().removeIf(item -> item.getMenuItem().getId().equals(menuItemId));
+        cartItemRepository.deleteByCartIdAndMenuItemId(cart.getId(), menuItemId);
 
-        if (cart.getItems().isEmpty()) {
+        List<CartItem> remainingItems = cartItemRepository.findByCartId(cart.getId());
+        if (remainingItems.isEmpty()) {
             cart.setRestaurant(null);
+            cart = cartRepository.save(cart);
         }
 
-        cart = cartRepository.save(cart);
         return mapToResponse(cart);
     }
 
@@ -148,29 +155,29 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void clearCart(UUID userId) {
         Cart cart = getOrCreateCart(userId);
-        cart.getItems().clear();
+        cartItemRepository.deleteByCartId(cart.getId());
         cart.setRestaurant(null);
         cartRepository.save(cart);
     }
 
     private Cart getOrCreateCart(UUID userId) {
-        return cartRepository.findByUserIdWithItems(userId).orElseGet(() -> {
+        return cartRepository.findByUserId(userId).orElseGet(() -> {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
             Cart newCart = Cart.builder()
                     .user(user)
-                    .items(new ArrayList<>())
                     .build();
             return cartRepository.save(newCart);
         });
     }
 
     private CartResponse mapToResponse(Cart cart) {
+        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
         List<CartItemResponse> itemResponses = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
         int totalItems = 0;
 
-        for (CartItem item : cart.getItems()) {
+        for (CartItem item : items) {
             MenuItem m = item.getMenuItem();
             BigDecimal price = m.getPrice();
             BigDecimal subtotal = price.multiply(BigDecimal.valueOf(item.getQuantity()));
