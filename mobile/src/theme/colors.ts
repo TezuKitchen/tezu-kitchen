@@ -23,15 +23,17 @@ export const lightColors = {
   warning: '#F59E0B',
   info: '#3B82F6',
 
-  // Status Colors (from DESIGN.md)
+  // Status Colors (from user specification: placed=grey, middle=orange, outForDelivery & delivered=green)
   status: {
-    placed: '#6B7280',     // Gray
-    accepted: '#3B82F6',   // Blue
-    preparing: '#F59E0B',  // Yellow
-    ready: '#10B981',      // Green
-    outForDelivery: '#FF5722', // Orange
-    delivered: '#10B981',  // Green
-    cancelled: '#DC2626',  // Red
+    placed: '#6B7280',         // Grey / neutral
+    accepted: '#F97316',       // Orange (middle kitchen step)
+    preparing: '#F97316',      // Orange (middle kitchen step)
+    ready: '#10B981',          // Green
+    out_for_delivery: '#10B981', // Green
+    outForDelivery: '#10B981', // Green
+    delivered: '#10B981',      // Green
+    cancelled: '#DC2626',      // Red
+    rejected: '#DC2626',       // Red
   }
 };
 
@@ -62,13 +64,15 @@ export const darkColors = {
 
   // Status Colors
   status: {
-    placed: '#9CA3AF',     // Gray
-    accepted: '#60A5FA',   // Blue
-    preparing: '#FBBF24',  // Yellow
-    ready: '#34D399',      // Green
-    outForDelivery: '#FF6E40', // Orange
-    delivered: '#34D399',  // Green
-    cancelled: '#EF4444',  // Red
+    placed: '#9CA3AF',         // Grey / neutral
+    accepted: '#FB923C',       // Orange
+    preparing: '#FB923C',      // Orange
+    ready: '#34D399',          // Green
+    out_for_delivery: '#34D399', // Green
+    outForDelivery: '#34D399', // Green
+    delivered: '#34D399',      // Green
+    cancelled: '#EF4444',      // Red
+    rejected: '#EF4444',       // Red
   }
 };
 

@@ -65,6 +65,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, userData: User, refreshToken?: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (partialUser: Partial<User>) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,6 +76,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  const refreshProfile = async () => {
+    try {
+      const res = await api.get('/users/profile');
+      if (res.data?.data) {
+        const p = res.data.data;
+        setUser(prev => {
+          if (!prev) return null;
+          const updated: User = {
+            ...prev,
+            name: p.name || prev.name,
+            email: p.email || prev.email,
+            phone: p.phone ?? prev.phone,
+            avatarUrl: p.avatarUrl ?? prev.avatarUrl,
+          };
+          setStorageItem('userData', JSON.stringify(updated)).catch(e => console.error('Failed to sync refreshed profile', e));
+          return updated;
+        });
+      }
+    } catch (e) {
+      // Silent error if network down
+    }
+  };
+
+  const updateUser = async (partialUser: Partial<User>) => {
+    try {
+      setUser(prev => {
+        if (!prev) return null;
+        const updated: User = { ...prev, ...partialUser };
+        setStorageItem('userData', JSON.stringify(updated)).catch(e => console.error('Failed to sync updated userData', e));
+        return updated;
+      });
+    } catch (e) {
+      console.error('Failed to update user', e);
+    }
+  };
 
   useEffect(() => {
     // Check if user is already logged in on app startup
@@ -86,6 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = JSON.parse(userDataStr);
           setUser(userData);
           setRole(userData.role);
+          // Refresh in background to get latest avatar / updates
+          refreshProfile().catch(() => {});
         }
       } catch (e) {
         console.error('Failed to restore authentication state', e);
@@ -136,7 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, role, isLoading, login, logout, updateUser, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

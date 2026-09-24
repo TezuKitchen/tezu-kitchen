@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -12,7 +12,7 @@ import {
   Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { 
   UtensilsCrossed, 
@@ -62,9 +62,15 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 export default function PlateScreen() {
   const router = useRouter();
   const cart = useCart();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile?.();
+    }, [refreshProfile])
+  );
 
   const [address, setAddress] = useState('');
   const [addressError, setAddressError] = useState('');
@@ -72,6 +78,7 @@ export default function PlateScreen() {
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'ONLINE'>('COD');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [razorpayHtml, setRazorpayHtml] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
 
   const [promoCode, setPromoCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -127,7 +134,11 @@ export default function PlateScreen() {
         setRazorpayHtml(null);
         await cart.clearCart();
         showAlert('Order Placed!', 'Your meal is on its way!', () => {
-          router.replace('/(student)/orders');
+          if (currentOrderId) {
+            router.replace(`/order/${currentOrderId}` as any);
+          } else {
+            router.replace('/(student)/orders');
+          }
         });
       } else if (data.type === 'dismiss' || data.type === 'error') {
         setRazorpayHtml(null);
@@ -177,6 +188,7 @@ export default function PlateScreen() {
 
       const orderResponse = await api.post('/orders', orderPayload);
       const orderId = orderResponse.data.data.id;
+      setCurrentOrderId(orderId);
 
       if (paymentMethod === 'ONLINE') {
         const razorpayResponse = await api.post('/payments/razorpay/create-order', { orderId });
@@ -242,7 +254,7 @@ export default function PlateScreen() {
 
         await cart.clearCart();
         showAlert('Order Placed!', 'Your order has been sent to the kitchen!', () => {
-          router.replace('/(student)/orders');
+          router.replace(`/order/${orderId}` as any);
         });
       }
     } catch (error: any) {
@@ -276,7 +288,15 @@ export default function PlateScreen() {
           {user && (
             <View style={styles.emptyUserCard}>
               <View style={styles.userIconBadge}>
-                <User size={18} color={colors.primary} />
+                {user.avatarUrl ? (
+                  <Image 
+                    source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-sm') }} 
+                    style={styles.emptyUserAvatar} 
+                    contentFit="cover" 
+                  />
+                ) : (
+                  <User size={18} color={colors.primary} />
+                )}
               </View>
               <View style={styles.emptyUserInfo}>
                 <Text style={styles.emptyUserName}>{user.name}</Text>
@@ -1070,6 +1090,12 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: '#FFF7ED',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  emptyUserAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   emptyUserInfo: {
     flex: 1,

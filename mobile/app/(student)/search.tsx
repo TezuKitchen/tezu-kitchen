@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Search, X, SearchX } from 'lucide-react-native';
 import { typography, spacing, layout } from '../../src/theme';
 import { ThemeColors } from '../../src/theme/colors';
@@ -29,15 +29,42 @@ interface Restaurant {
   logoUrl?: string;
 }
 
+const POPULAR_DISHES = [
+  'Paneer Butter Masala',
+  'Chicken Biryani',
+  'Chicken Nuggets',
+  'Masala Dosa',
+  'Veg Hakka Noodles',
+  'Steamed Momos',
+  'Egg Chicken Roll',
+  'Cold Coffee',
+  'Crispy Burger',
+];
+
 export default function SearchScreen() {
   const router = useRouter();
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(q || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(q || '');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dishIndex, setDishIndex] = useState(0);
+
+  useEffect(() => {
+    if (q) {
+      setSearchQuery(q);
+    }
+  }, [q]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDishIndex((prev) => (prev + 1) % POPULAR_DISHES.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchRestaurants = async () => {
     try {
@@ -93,7 +120,7 @@ export default function SearchScreen() {
         <Search size={20} color={colors.textLight} style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Search for your favorite restaurant..."
+          placeholder={`Search for "${POPULAR_DISHES[dishIndex]}"...`}
           placeholderTextColor={colors.textLight}
           value={searchQuery}
           onChangeText={setSearchQuery}

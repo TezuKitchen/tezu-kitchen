@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
+  ScrollView,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { MapPin, Bell, User } from 'lucide-react-native';
 import { typography, spacing, layout } from '../../src/theme';
@@ -38,9 +39,72 @@ interface FavoriteRestaurant {
   createdAt?: string;
 }
 
+const DISH_CATEGORIES = [
+  {
+    id: 'biryani',
+    name: 'Biryani',
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=200&auto=format&fit=crop&q=80',
+    query: 'Biryani',
+  },
+  {
+    id: 'paneer',
+    name: 'Paneer',
+    image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=200&auto=format&fit=crop&q=80',
+    query: 'Paneer',
+  },
+  {
+    id: 'momos',
+    name: 'Momos',
+    image: 'https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?w=200&auto=format&fit=crop&q=80',
+    query: 'Momo',
+  },
+  {
+    id: 'rolls',
+    name: 'Rolls',
+    image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=200&auto=format&fit=crop&q=80',
+    query: 'Roll',
+  },
+  {
+    id: 'noodles',
+    name: 'Noodles',
+    image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=200&auto=format&fit=crop&q=80',
+    query: 'Noodles',
+  },
+  {
+    id: 'dosa',
+    name: 'Dosa',
+    image: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=200&auto=format&fit=crop&q=80',
+    query: 'Dosa',
+  },
+  {
+    id: 'burger',
+    name: 'Burgers',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&auto=format&fit=crop&q=80',
+    query: 'Burger',
+  },
+  {
+    id: 'friedrice',
+    name: 'Fried Rice',
+    image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=200&auto=format&fit=crop&q=80',
+    query: 'Fried Rice',
+  },
+  {
+    id: 'coffee',
+    name: 'Chai & Coffee',
+    image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=200&auto=format&fit=crop&q=80',
+    query: 'Coffee',
+  },
+  {
+    id: 'paratha',
+    name: 'Paratha',
+    image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=200&auto=format&fit=crop&q=80',
+    query: 'Paratha',
+  },
+];
+
 export default function StudentHome() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -48,6 +112,12 @@ export default function StudentHome() {
   const [favorites, setFavorites] = useState<FavoriteRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile?.();
+    }, [refreshProfile])
+  );
 
   const fetchRestaurants = async () => {
     try {
@@ -133,6 +203,40 @@ export default function StudentHome() {
     );
   };
 
+  const renderDishCategories = () => (
+    <View style={styles.categoriesSection}>
+      <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>
+        What's on your mind?
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesScrollContent}
+      >
+        {DISH_CATEGORIES.map((dish) => (
+          <TouchableOpacity
+            key={dish.id}
+            style={styles.categoryItem}
+            activeOpacity={0.75}
+            onPress={() => router.push({ pathname: '/(student)/search', params: { q: dish.query } } as any)}
+          >
+            <View style={[styles.dishCircle, { borderColor: colors.borderSubtle, backgroundColor: colors.surface }]}>
+              <Image
+                source={{ uri: dish.image }}
+                style={styles.dishImage}
+                contentFit="cover"
+                transition={200}
+              />
+            </View>
+            <Text style={styles.dishName} numberOfLines={1}>
+              {dish.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {renderHeader()}
@@ -151,6 +255,7 @@ export default function StudentHome() {
           }
           ListHeaderComponent={
             <>
+              {renderDishCategories()}
               {renderFavorites()}
               <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg, marginTop: spacing.md }]}>All Restaurants</Text>
             </>
@@ -285,5 +390,38 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: typography.fonts.body,
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
+  },
+  categoriesSection: {
+    marginBottom: spacing.lg,
+    paddingTop: spacing.xs,
+  },
+  categoriesScrollContent: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+  categoryItem: {
+    alignItems: 'center',
+    width: 72,
+  },
+  dishCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    marginBottom: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...layout.shadows.sm,
+  },
+  dishImage: {
+    width: '100%',
+    height: '100%',
+  },
+  dishName: {
+    fontFamily: typography.fonts.bodyMedium,
+    fontSize: typography.sizes.xs,
+    color: colors.text,
+    textAlign: 'center',
   },
 });

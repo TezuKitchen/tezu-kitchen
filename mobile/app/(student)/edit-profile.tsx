@@ -34,7 +34,7 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, updateUser } = useAuth();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   
@@ -112,7 +112,11 @@ export default function EditProfileScreen() {
         savedAddresses: addresses
       });
       
-      // Update local user context if possible, skipping here since login requires token
+      await updateUser({
+        name,
+        phone,
+        avatarUrl
+      });
       
       showAlert('Success', 'Profile updated successfully!', () => {
         router.back();

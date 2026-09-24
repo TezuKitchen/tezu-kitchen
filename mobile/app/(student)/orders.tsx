@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import api from '../../src/services/api';
 import { typography, spacing, layout } from '../../src/theme';
@@ -31,6 +32,7 @@ interface Order {
 }
 
 export default function StudentOrders() {
+  const router = useRouter();
   const { user } = useAuth();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
@@ -53,9 +55,16 @@ export default function StudentOrders() {
     }
   }, [user?.userId]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+      // Auto-poll active orders every 4 seconds so hotel updates reflect in real-time
+      const interval = setInterval(() => {
+        fetchOrders();
+      }, 4000);
+      return () => clearInterval(interval);
+    }, [fetchOrders])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -73,11 +82,12 @@ export default function StudentOrders() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.patch(`/orders/${orderId}/status`, { status: 'CANCELLED' });
+              await api.put(`/orders/${orderId}/cancel`);
               fetchOrders();
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error cancelling order:', error);
-              Alert.alert('Error', 'Failed to cancel order');
+              const msg = error?.response?.data?.message || 'Failed to cancel order';
+              Alert.alert('Error', msg);
             }
           }
         }
@@ -91,8 +101,21 @@ export default function StudentOrders() {
   };
 
   const getStatusColor = (status: OrderStatus) => {
-    const statusKey = status.toLowerCase().replace(/_([a-z])/g, (g) => g[1].toUpperCase()) as keyof typeof colors.status;
-    return (colors.status as any)[statusKey] || colors.textLight;
+    switch (status) {
+      case 'PLACED':
+        return colors.status.placed; // Grey
+      case 'ACCEPTED':
+      case 'PREPARING':
+        return colors.status.accepted; // Orange (middle kitchen steps)
+      case 'OUT_FOR_DELIVERY':
+      case 'DELIVERED':
+        return colors.status.delivered; // Green
+      case 'CANCELLED':
+      case 'REJECTED':
+        return colors.status.cancelled; // Red
+      default:
+        return colors.textLight;
+    }
   };
 
   const filteredOrders = orders.filter(o => {
@@ -104,7 +127,11 @@ export default function StudentOrders() {
     const itemSummary = item.items.map(i => `${i.quantity}× ${i.itemName}`).join(', ');
     
     return (
-      <View style={styles.card}>
+      <TouchableOpacity 
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => router.push(`/order/${item.id}` as any)}
+      >
         <View style={styles.cardHeader}>
           <Text style={styles.restaurantName}>{item.restaurantName}</Text>
           <View style={[styles.badge, { backgroundColor: getStatusColor(item.status) }]}>
@@ -125,13 +152,16 @@ export default function StudentOrders() {
           {(item.status === 'PLACED' || item.status === 'ACCEPTED') && (
             <TouchableOpacity 
               style={styles.cancelButton}
-              onPress={() => cancelOrder(item.id)}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                cancelOrder(item.id);
+              }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -280,7 +310,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: layout.radius.sm,
-    backgroundColor: '#FFF',
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: colors.error,
   },

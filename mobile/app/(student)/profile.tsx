@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { 
   User, 
@@ -89,10 +89,16 @@ function MenuItem({
 }
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { themeMode, isDark, colors, setThemeMode } = useTheme();
   const router = useRouter();
   const [showThemeModal, setShowThemeModal] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile?.();
+    }, [refreshProfile])
+  );
 
   const handleComingSoon = (feature: string) => {
     showAlert(feature, 'This feature is coming soon!');

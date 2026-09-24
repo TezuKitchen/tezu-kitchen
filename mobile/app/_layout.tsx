@@ -33,6 +33,7 @@ function RootNavigation() {
         <Stack.Screen name="(owner)" options={{ headerShown: false }} />
         <Stack.Screen name="cart" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
       </Stack>
     </>
   );
