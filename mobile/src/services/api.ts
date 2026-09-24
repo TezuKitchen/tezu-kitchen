@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Fallback IP of host machine for physical devices when auto-detection is not available
-const DEFAULT_LOCAL_IP = '10.184.225.61';
+const DEFAULT_LOCAL_IP = '10.203.135.162';
 
 const getBaseUrl = () => {
   // 1. Explicit override via EXPO_PUBLIC_API_URL in .env if provided
