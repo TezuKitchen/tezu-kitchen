@@ -57,6 +57,8 @@ interface User {
   role: UserRole;
   restaurantId?: number | string; // Only for OWNER role
   avatarUrl?: string;
+  address?: string;
+  savedAddresses?: string[];
 }
 
 interface AuthContextType {
@@ -90,6 +92,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: p.email || prev.email,
             phone: p.phone ?? prev.phone,
             avatarUrl: p.avatarUrl ?? prev.avatarUrl,
+            savedAddresses: p.savedAddresses ?? prev.savedAddresses,
+            address: (p.savedAddresses && p.savedAddresses.length > 0) ? p.savedAddresses[0] : (prev.address || undefined),
           };
           setStorageItem('userData', JSON.stringify(updated)).catch(e => console.error('Failed to sync refreshed profile', e));
           return updated;

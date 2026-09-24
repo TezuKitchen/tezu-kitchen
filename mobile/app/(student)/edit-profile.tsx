@@ -115,7 +115,9 @@ export default function EditProfileScreen() {
       await updateUser({
         name,
         phone,
-        avatarUrl
+        avatarUrl,
+        savedAddresses: addresses,
+        address: addresses.length > 0 ? addresses[0] : '',
       });
       
       showAlert('Success', 'Profile updated successfully!', () => {

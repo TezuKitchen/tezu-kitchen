@@ -148,13 +148,20 @@ export default function StudentHome() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.locationContainer}>
+      <TouchableOpacity
+        style={styles.locationContainer}
+        onPress={() => router.push('/(student)/edit-profile' as any)}
+        activeOpacity={0.7}
+        accessibilityLabel="Change delivery address"
+      >
         <MapPin size={20} color={colors.primary} />
         <View style={styles.locationTextContainer}>
           <Text style={styles.locationLabel}>Delivering to</Text>
-          <Text style={styles.locationValue} numberOfLines={1}>Tezpur University Campus</Text>
+          <Text style={styles.locationValue} numberOfLines={1}>
+            {user?.address || (user?.savedAddresses && user.savedAddresses.length > 0 ? user.savedAddresses[0] : 'Tezpur University Campus')}
+          </Text>
         </View>
-      </View>
+      </TouchableOpacity>
       <View style={styles.headerActions}>
         <TouchableOpacity
           style={styles.notificationBtn}
@@ -312,9 +319,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: spacing.sm,
   },
   locationTextContainer: {
     marginLeft: spacing.sm,
+    flex: 1,
   },
   locationLabel: {
     fontFamily: typography.fonts.bodyMedium,
