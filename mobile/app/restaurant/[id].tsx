@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, Clock, ShoppingBag, Heart } from 'lucide-react-native';
+import { ArrowLeft, Star, Clock, ShoppingBag, Heart, UtensilsCrossed } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
@@ -234,11 +234,11 @@ export default function RestaurantMenuScreen() {
             ]}>
               <TouchableOpacity 
                 style={styles.floatingCartButton}
-                onPress={() => router.push('/cart')}
+                onPress={() => router.push('/(student)/plate' as any)}
                 activeOpacity={0.9}
               >
                 <View style={styles.cartInfo}>
-                  <ShoppingBag size={20} color={colors.surface} />
+                  <UtensilsCrossed size={20} color={colors.surface} />
                   <View>
                     <Text style={styles.cartItemsText}>
                       {cart.totalItems} ITEM{cart.totalItems > 1 ? 'S' : ''}
@@ -246,7 +246,7 @@ export default function RestaurantMenuScreen() {
                     <Text style={styles.cartTotalText}>₹{cart.totalAmount}</Text>
                   </View>
                 </View>
-                <Text style={styles.viewCartText}>View Cart →</Text>
+                <Text style={styles.viewCartText}>View Plate →</Text>
               </TouchableOpacity>
             </View>
           )}
