@@ -51,6 +51,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Invalid role: " + request.getRole());
         }
 
+        if (role == UserRole.ADMIN) {
+            throw new BadRequestException("Self-registration as ADMIN is not allowed");
+        }
+
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())

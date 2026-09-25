@@ -45,6 +45,7 @@ public class FavoriteService {
         }
     }
 
+    @Transactional(readOnly = true)
     public List<FavoriteRestaurantResponse> getFavoritesForUser(UUID userId) {
         return favoriteRestaurantRepository.findByUserId(userId).stream()
                 .map(this::mapToResponse)
@@ -52,10 +53,17 @@ public class FavoriteService {
     }
 
     private FavoriteRestaurantResponse mapToResponse(FavoriteRestaurant favorite) {
+        Restaurant restaurant = favorite.getRestaurant();
         String logoUrl = null;
-        if (favorite.getRestaurant().getImages() != null) {
-            logoUrl = favorite.getRestaurant().getImages().stream()
+        String bannerUrl = null;
+        if (restaurant.getImages() != null) {
+            logoUrl = restaurant.getImages().stream()
                     .filter(img -> "LOGO".equals(img.getImageType()))
+                    .map(RestaurantImage::getImageUrl)
+                    .findFirst()
+                    .orElse(null);
+            bannerUrl = restaurant.getImages().stream()
+                    .filter(img -> "BANNER".equals(img.getImageType()))
                     .map(RestaurantImage::getImageUrl)
                     .findFirst()
                     .orElse(null);
@@ -63,9 +71,13 @@ public class FavoriteService {
 
         return FavoriteRestaurantResponse.builder()
                 .id(favorite.getId())
-                .restaurantId(favorite.getRestaurant().getId())
-                .restaurantName(favorite.getRestaurant().getName())
+                .restaurantId(restaurant.getId())
+                .restaurantName(restaurant.getName())
+                .restaurantDescription(restaurant.getDescription())
+                .restaurantLocation(restaurant.getLocation())
+                .restaurantIsOpen(restaurant.isOpen())
                 .restaurantLogoUrl(logoUrl)
+                .restaurantBannerUrl(bannerUrl)
                 .createdAt(favorite.getCreatedAt())
                 .build();
     }

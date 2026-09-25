@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/docs/**", "/api/swagger-ui/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/menu/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
                 .requestMatchers("/api/v1/payments/razorpay/webhook").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .anyRequest().authenticated()
