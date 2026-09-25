@@ -358,6 +358,8 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 10,
+      elevation: 5,
       ...layout.shadows.md,
     },
     cardContent: {
