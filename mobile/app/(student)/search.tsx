@@ -306,70 +306,69 @@ export default function SearchScreen() {
     }
   };
 
-  const renderFixedHeader = () => (
-    <View style={styles.searchHeader}>
-      <View style={styles.searchBarRow}>
-        <View style={[styles.searchBar, isSearching && styles.searchBarActive]}>
-          <Search size={18} color={colors.textLight} style={styles.searchIcon} />
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder=""
-            value={searchQuery}
-            onChangeText={(text) => {
-              setSearchQuery(text);
-              if (!isSearching) setIsSearching(true);
-            }}
-            onFocus={() => setIsSearching(true)}
-            onSubmitEditing={() => handleExecuteSearch(searchQuery)}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-            clearButtonMode="never"
-          />
-          {searchQuery.length === 0 && (
-            <View style={styles.animatedPlaceholderContainer} pointerEvents="none">
-              <Text style={styles.staticPlaceholderText}>Search for </Text>
-              <View style={styles.animatedDishClippingBox}>
-                <Animated.View
-                  style={{
-                    transform: [{ translateY: slideAnim }],
-                    opacity: fadeAnim,
-                  }}
-                >
-                  <Text style={styles.animatedDishText} numberOfLines={1}>
-                    {POPULAR_DISHES[dishIndex]}
-                  </Text>
-                </Animated.View>
-              </View>
+  const renderSearchBar = (showCancel: boolean) => (
+    <View style={styles.searchBarRow}>
+      <View style={[styles.searchBar, isSearching && styles.searchBarActive]}>
+        <Search size={18} color={colors.textLight} style={styles.searchIcon} />
+        <TextInput
+          ref={inputRef}
+          style={styles.input}
+          placeholder=""
+          value={searchQuery}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            if (!isSearching) setIsSearching(true);
+          }}
+          onFocus={() => setIsSearching(true)}
+          onSubmitEditing={() => handleExecuteSearch(searchQuery)}
+          returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearButtonMode="never"
+        />
+        {searchQuery.length === 0 && (
+          <View style={styles.animatedPlaceholderContainer} pointerEvents="none">
+            <Text style={styles.staticPlaceholderText}>Search for </Text>
+            <View style={styles.animatedDishClippingBox}>
+              <Animated.View
+                style={{
+                  transform: [{ translateY: slideAnim }],
+                  opacity: fadeAnim,
+                }}
+              >
+                <Text style={styles.animatedDishText} numberOfLines={1}>
+                  {POPULAR_DISHES[dishIndex]}
+                </Text>
+              </Animated.View>
             </View>
-          )}
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchQuery('');
-                inputRef.current?.focus();
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.clearBtn}
-              accessibilityLabel="Clear search"
-            >
-              <X size={15} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {isSearching && (
+          </View>
+        )}
+        {searchQuery.length > 0 && (
           <TouchableOpacity
-            onPress={handleCancelSearch}
-            style={styles.cancelBtn}
-            activeOpacity={0.7}
-            accessibilityLabel="Cancel search mode"
+            onPress={() => {
+              setSearchQuery('');
+              setDebouncedQuery('');
+              inputRef.current?.focus();
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.clearBtn}
+            accessibilityLabel="Clear search"
           >
-            <Text style={styles.cancelBtnText}>Cancel</Text>
+            <X size={15} color={colors.textMuted} />
           </TouchableOpacity>
         )}
       </View>
+
+      {showCancel && (
+        <TouchableOpacity
+          onPress={handleCancelSearch}
+          style={styles.cancelBtn}
+          activeOpacity={0.7}
+          accessibilityLabel="Cancel search mode"
+        >
+          <Text style={styles.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -540,24 +539,30 @@ export default function SearchScreen() {
   };
 
   const renderListHeader = () => {
-    if (restaurants.length === 0) return null;
-
     const hasQuery = debouncedQuery.trim().length > 0;
     return (
-      <Text style={styles.resultsCount}>
-        {hasQuery
-          ? `Found ${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'restaurant' : 'restaurants'} for "${debouncedQuery}"`
-          : `All Restaurants (${restaurants.length})`}
-      </Text>
+      <View style={styles.feedHeaderContainer}>
+        {renderSearchBar(false)}
+        {restaurants.length > 0 && (
+          <Text style={styles.resultsCount}>
+            {hasQuery
+              ? `Found ${filteredRestaurants.length} ${filteredRestaurants.length === 1 ? 'restaurant' : 'restaurants'} for "${debouncedQuery}"`
+              : `All Restaurants (${restaurants.length})`}
+          </Text>
+        )}
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {renderFixedHeader()}
-
       {isSearching ? (
-        renderSuggestionsMode()
+        <View style={styles.searchModeContainer}>
+          <View style={styles.pinnedSearchHeader}>
+            {renderSearchBar(true)}
+          </View>
+          {renderSuggestionsMode()}
+        </View>
       ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -602,15 +607,17 @@ const createStyles = (colors: ThemeColors) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    searchHeader: {
-      backgroundColor: colors.surface,
+    feedHeaderContainer: {
+      marginBottom: spacing.md,
+    },
+    pinnedSearchHeader: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
-      paddingBottom: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderSubtle,
-      zIndex: 10,
-      elevation: 4,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.background,
+    },
+    searchModeContainer: {
+      flex: 1,
     },
     searchBarRow: {
       flexDirection: 'row',

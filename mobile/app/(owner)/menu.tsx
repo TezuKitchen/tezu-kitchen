@@ -11,13 +11,13 @@ import {
   Alert,
   RefreshControl,
   Modal,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { Camera } from 'lucide-react-native';
 import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
 
@@ -325,7 +325,7 @@ export default function OwnerMenuScreen() {
                       <Image
                         source={{ uri: getTransformedUrl(item.primaryImageUrl, 'menu-item') }}
                         style={styles.itemImage}
-                        contentFit="cover"
+                        resizeMode="cover"
                       />
                     )}
                   </View>
@@ -366,7 +366,7 @@ export default function OwnerMenuScreen() {
                     <Image
                       source={{ uri: itemImageUri || getTransformedUrl(itemImageUrl!, 'menu-item') }}
                       style={styles.imagePreview}
-                      contentFit="cover"
+                      resizeMode="cover"
                     />
                   ) : (
                     <View style={styles.imagePlaceholder}>

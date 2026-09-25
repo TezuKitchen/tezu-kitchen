@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, User, MapPin, Plus, Trash2, Camera } from 'lucide-react-native';
-import { Image } from 'expo-image';
 import { typography, spacing, layout } from '../../src/theme';
 import { ThemeColors } from '../../src/theme/colors';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -105,19 +105,26 @@ export default function EditProfileScreen() {
     
     setIsSaving(true);
     try {
+      const finalAddresses = [...addresses];
+      if (newAddress.trim() && !finalAddresses.includes(newAddress.trim())) {
+        finalAddresses.push(newAddress.trim());
+        setAddresses(finalAddresses);
+        setNewAddress('');
+      }
+
       const response = await api.put('/users/profile', {
         name,
         phone,
         avatarUrl,
-        savedAddresses: addresses
+        savedAddresses: finalAddresses
       });
       
       await updateUser({
         name,
         phone,
         avatarUrl,
-        savedAddresses: addresses,
-        address: addresses.length > 0 ? addresses[0] : '',
+        savedAddresses: finalAddresses,
+        address: finalAddresses.length > 0 ? finalAddresses[0] : '',
       });
       
       showAlert('Success', 'Profile updated successfully!', () => {
@@ -158,7 +165,7 @@ export default function EditProfileScreen() {
                <Image
                  source={{ uri: avatarUri || getTransformedUrl(avatarUrl, 'avatar-lg') }}
                  style={styles.avatarImage}
-                 contentFit="cover"
+                 resizeMode="cover"
                />
             ) : (
               <User size={48} color={colors.textMuted} />

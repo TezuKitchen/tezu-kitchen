@@ -5,12 +5,12 @@ import {
   StyleSheet, 
   FlatList, 
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Image
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Star, Clock, ShoppingBag, Heart, UtensilsCrossed } from 'lucide-react-native';
-import { Image } from 'expo-image';
 import { typography, spacing, layout } from '../../src/theme';
 import { ThemeColors } from '../../src/theme/colors';
 import { useTheme } from '../../src/context/ThemeContext';
@@ -111,8 +111,7 @@ export default function RestaurantMenuScreen() {
           <Image
             source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-hero') }}
             style={[styles.heroImage, { height: heroHeight }]}
-            contentFit="cover"
-            transition={300}
+            resizeMode="cover"
           />
         ) : null}
         <TouchableOpacity 

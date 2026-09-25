@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography, spacing, layout } from '../../src/theme';
@@ -17,7 +18,6 @@ import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Camera } from 'lucide-react-native';
-import { Image } from 'expo-image';
 import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
 
 interface Restaurant {
@@ -280,7 +280,7 @@ export default function OwnerStoreScreen() {
                           <Image
                             source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-card') }}
                             style={styles.storeImage}
-                            contentFit="cover"
+                            resizeMode="cover"
                           />
                         ) : (
                           <View style={styles.imagePlaceholder}>
@@ -305,7 +305,7 @@ export default function OwnerStoreScreen() {
                           <Image
                             source={{ uri: getTransformedUrl(restaurant.logoUrl, 'avatar-lg') }}
                             style={styles.storeLogo}
-                            contentFit="cover"
+                            resizeMode="cover"
                           />
                         ) : (
                           <View style={[styles.imagePlaceholder, styles.storeLogo]}>

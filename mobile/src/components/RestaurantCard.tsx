@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { MapPin, Star, Clock, Store } from 'lucide-react-native';
-import { Image } from 'expo-image';
 import { typography, spacing, layout } from '../theme';
 import { ThemeColors } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
@@ -42,8 +41,7 @@ export default function RestaurantCard({
           <Image
             source={{ uri: getTransformedUrl(bannerUrl, 'restaurant-card') }}
             style={styles.image}
-            contentFit="cover"
-            transition={200}
+            resizeMode="cover"
           />
         ) : (
           <View style={styles.imagePlaceholder}>

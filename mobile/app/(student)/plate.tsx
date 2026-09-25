@@ -9,11 +9,12 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  Modal
+  Modal,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   UtensilsCrossed, 
   Plus, 
@@ -87,14 +88,20 @@ export default function PlateScreen() {
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
 
-  // Load saved addresses from user profile
+  // Load last ordered address and saved addresses from user profile
   useEffect(() => {
+    AsyncStorage.getItem('@tezu_kitchen_last_ordered_address').then(lastAddr => {
+      if (lastAddr && lastAddr.trim()) {
+        setAddress(prev => prev ? prev : lastAddr.trim());
+      }
+    }).catch(() => {});
+
     api.get('/users/profile')
       .then(res => {
         if (res.data?.data?.savedAddresses) {
           setSavedAddresses(res.data.data.savedAddresses);
-          if (res.data.data.savedAddresses.length > 0 && !address) {
-            setAddress(res.data.data.savedAddresses[0]);
+          if (res.data.data.savedAddresses.length > 0) {
+            setAddress(prev => prev ? prev : res.data.data.savedAddresses[0]);
           }
         }
       })
@@ -189,6 +196,10 @@ export default function PlateScreen() {
       const orderResponse = await api.post('/orders', orderPayload);
       const orderId = orderResponse.data.data.id;
       setCurrentOrderId(orderId);
+
+      // Save last ordered address for home screen & future checkouts
+      const cleanPlacedAddress = address.trim();
+      AsyncStorage.setItem('@tezu_kitchen_last_ordered_address', cleanPlacedAddress).catch(() => {});
 
       if (paymentMethod === 'ONLINE') {
         const razorpayResponse = await api.post('/payments/razorpay/create-order', { orderId });
@@ -292,7 +303,7 @@ export default function PlateScreen() {
                   <Image 
                     source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-sm') }} 
                     style={styles.emptyUserAvatar} 
-                    contentFit="cover" 
+                    resizeMode="cover" 
                   />
                 ) : (
                   <User size={18} color={colors.primary} />
@@ -345,7 +356,7 @@ export default function PlateScreen() {
               <Image 
                 source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-sm') }} 
                 style={styles.userAvatar} 
-                contentFit="cover" 
+                resizeMode="cover" 
               />
             ) : (
               <View style={[styles.userAvatar, styles.userAvatarFallback]}>
