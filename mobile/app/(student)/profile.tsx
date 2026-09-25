@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
 import { 
   User, 
   ChevronRight, 
@@ -128,7 +127,7 @@ export default function ProfileScreen() {
               <Image
                 source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-lg') }}
                 style={styles.avatar}
-                contentFit="cover"
+                resizeMode="cover"
               />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.borderSubtle }]}>
@@ -192,7 +191,8 @@ export default function ProfileScreen() {
               colors={colors}
               icon={<Heart size={20} color={colors.primary} />}
               label="Favourites"
-              onPress={() => handleComingSoon('Favourites')}
+              subLabel="Saved kitchens & dhabas"
+              onPress={() => router.push('/favourites' as any)}
             />
           </View>
         </View>

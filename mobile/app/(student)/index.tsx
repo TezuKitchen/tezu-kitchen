@@ -7,11 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
-  TouchableOpacity
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
 import { MapPin, Bell, User } from 'lucide-react-native';
 import { typography, spacing, layout } from '../../src/theme';
 import { ThemeColors } from '../../src/theme/colors';
@@ -21,6 +21,7 @@ import RestaurantCard from '../../src/components/RestaurantCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useNotification } from '../../src/context/NotificationContext';
 import { getTransformedUrl } from '../../src/services/imageService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Restaurant {
   id: string;
@@ -32,13 +33,7 @@ interface Restaurant {
   logoUrl?: string;
 }
 
-interface FavoriteRestaurant {
-  id: string;
-  restaurantId: string;
-  restaurantName: string;
-  restaurantLogoUrl?: string;
-  createdAt?: string;
-}
+import { FavoriteRestaurant } from '../../src/types';
 
 const DISH_CATEGORIES = [
   {
@@ -114,14 +109,57 @@ export default function StudentHome() {
   const [favorites, setFavorites] = useState<FavoriteRestaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deliveryLocation, setDeliveryLocation] = useState<string>('Tezpur University Campus');
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshProfile?.();
-    }, [refreshProfile])
-  );
+  const fetchDeliveryLocation = useCallback(async () => {
+    try {
+      // 1. Fetch latest order from backend if user is authenticated
+      const uid = user?.userId || user?.id;
+      if (uid) {
+        try {
+          const ordersRes = await api.get(`/orders/user/${uid}?size=1&sort=placedAt,desc`);
+          const latestOrder = ordersRes.data?.data?.content?.[0];
+          if (latestOrder?.deliveryAddress) {
+            const cleanAddr = latestOrder.deliveryAddress.replace(/\s*\(Note:.*?\)$/i, '').trim();
+            if (cleanAddr) {
+              setDeliveryLocation(cleanAddr);
+              await AsyncStorage.setItem('@tezu_kitchen_last_ordered_address', cleanAddr);
+              return;
+            }
+          }
+        } catch (orderErr) {
+          // If network fetch fails, continue checking cached / saved addresses
+        }
+      }
 
-  const fetchRestaurants = async () => {
+      // 2. Check cached last ordered address
+      const cachedLastOrderAddr = await AsyncStorage.getItem('@tezu_kitchen_last_ordered_address');
+      if (cachedLastOrderAddr && cachedLastOrderAddr.trim()) {
+        const cleanCached = cachedLastOrderAddr.replace(/\s*\(Note:.*?\)$/i, '').trim();
+        if (cleanCached) {
+          setDeliveryLocation(cleanCached);
+          return;
+        }
+      }
+
+      // 3. Fallback to user's saved address from profile
+      if (user?.address && user.address.trim()) {
+        setDeliveryLocation(user.address.trim());
+        return;
+      }
+      if (user?.savedAddresses && user.savedAddresses.length > 0 && user.savedAddresses[0].trim()) {
+        setDeliveryLocation(user.savedAddresses[0].trim());
+        return;
+      }
+
+      // 4. Default fallback
+      setDeliveryLocation('Tezpur University Campus');
+    } catch (e) {
+      console.warn('Error resolving delivery location:', e);
+    }
+  }, [user]);
+
+  const fetchRestaurants = useCallback(async () => {
     try {
       const [restRes, favRes] = await Promise.all([
         api.get('/restaurants'),
@@ -135,15 +173,25 @@ export default function StudentHome() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile?.();
+      fetchDeliveryLocation();
+      fetchRestaurants();
+    }, [refreshProfile, fetchDeliveryLocation, fetchRestaurants])
+  );
 
   useEffect(() => {
     fetchRestaurants();
-  }, []);
+    fetchDeliveryLocation();
+  }, [fetchDeliveryLocation, fetchRestaurants]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchRestaurants();
+    fetchDeliveryLocation();
   };
 
   const renderHeader = () => (
@@ -158,7 +206,7 @@ export default function StudentHome() {
         <View style={styles.locationTextContainer}>
           <Text style={styles.locationLabel}>Delivering to</Text>
           <Text style={styles.locationValue} numberOfLines={1}>
-            {user?.address || (user?.savedAddresses && user.savedAddresses.length > 0 ? user.savedAddresses[0] : 'Tezpur University Campus')}
+            {deliveryLocation}
           </Text>
         </View>
       </TouchableOpacity>
@@ -181,7 +229,7 @@ export default function StudentHome() {
             <Image
               source={{ uri: getTransformedUrl(user.avatarUrl, 'avatar-sm') }}
               style={styles.profileAvatar}
-              contentFit="cover"
+              resizeMode="cover"
             />
           ) : (
             <View style={[styles.profileAvatar, styles.profileAvatarPlaceholder]}>
@@ -197,12 +245,23 @@ export default function StudentHome() {
     if (favorites.length === 0) return null;
     return (
       <View style={styles.favoritesSection}>
-        <Text style={[styles.sectionTitle, { marginHorizontal: spacing.lg }]}>Your Favorites</Text>
+        <View style={styles.favoritesHeaderRow}>
+          <Text style={styles.sectionTitle}>Your Favorites</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/favourites' as any)}
+            activeOpacity={0.7}
+            style={styles.seeAllBtn}
+          >
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>
+              See All ({favorites.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
         <FlatList
           data={favorites}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => `fav-${item.id}`}
+          keyExtractor={(item) => `fav-${item.id || item.restaurantId}`}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.favoriteCard}
@@ -210,6 +269,9 @@ export default function StudentHome() {
               activeOpacity={0.8}
             >
               <Text style={styles.favoriteName} numberOfLines={1}>{item.restaurantName}</Text>
+              <Text style={styles.favoriteTags} numberOfLines={1}>
+                {item.restaurantLocation || 'Tap to view menu'}
+              </Text>
             </TouchableOpacity>
           )}
           contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
@@ -239,8 +301,7 @@ export default function StudentHome() {
               <Image
                 source={{ uri: dish.image }}
                 style={styles.dishImage}
-                contentFit="cover"
-                transition={200}
+                resizeMode="cover"
               />
             </View>
             <Text style={styles.dishName} numberOfLines={1}>
@@ -399,6 +460,20 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   favoritesSection: {
     marginBottom: spacing.xl,
     paddingTop: spacing.md,
+  },
+  favoritesHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  seeAllBtn: {
+    paddingVertical: spacing.xs,
+  },
+  seeAllText: {
+    fontFamily: typography.fonts.heading,
+    fontSize: typography.sizes.xs,
   },
   favoriteCard: {
     width: 200,
