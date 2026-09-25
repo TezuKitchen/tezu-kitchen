@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightColors, darkColors, ThemeColors } from '../theme/colors';
 
@@ -18,9 +18,20 @@ const THEME_STORAGE_KEY = '@tezu_theme_preference';
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const systemColorScheme = useColorScheme();
+  const hookScheme = useColorScheme();
+  const [appearanceScheme, setAppearanceScheme] = useState<ColorSchemeName>(
+    Appearance.getColorScheme()
+  );
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Listen to OS-level theme appearance switches (Android night mode, iOS dark mode)
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setAppearanceScheme(colorScheme);
+    });
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     const loadThemePreference = async () => {
@@ -47,9 +58,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const resolvedSystemScheme = appearanceScheme || hookScheme || 'light';
+
   const isDark = 
     themeMode === 'dark' || 
-    (themeMode === 'system' && systemColorScheme === 'dark');
+    (themeMode === 'system' && resolvedSystemScheme === 'dark');
 
   const toggleTheme = async () => {
     const nextMode: ThemeMode = isDark ? 'light' : 'dark';
