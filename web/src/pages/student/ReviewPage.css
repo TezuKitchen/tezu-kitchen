@@ -1,0 +1,147 @@
+.review-page {
+  background-color: var(--color-background);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+.review-page__container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.review-page__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.review-page__back-btn:hover {
+  color: var(--color-primary);
+}
+
+.review-page__error-msg {
+  color: var(--color-error);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.review-page__card {
+  background: var(--color-surface);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.review-page__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.75rem;
+  color: var(--color-text);
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+
+.review-page__subtitle {
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.review-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-page__rating-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.review-page__rating-section label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.review-page__stars {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.review-page__star-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.review-page__star-btn:hover {
+  transform: scale(1.1);
+}
+
+.review-page__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-page__input-group label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.review-page__input-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.review-page__input-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.review-page__error-alert {
+  padding: 0.75rem;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-error);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.review-page__submit-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 1rem;
+}
+
+.review-page__submit-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.review-page__submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

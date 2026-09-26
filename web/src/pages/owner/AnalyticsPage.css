@@ -1,0 +1,245 @@
+/* AnalyticsPage.css */
+.analytics-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.analytics-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.analytics-page__header h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.period-filters {
+  display: flex;
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: 0.25rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.period-filters button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.period-filters button.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: var(--color-surface);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric-card .label {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.metric-card .value {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.analytics-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-section, .breakdown-section, .top-items-section {
+  background: var(--color-surface);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.125rem;
+  margin: 0 0 1.5rem 0;
+  color: var(--color-text);
+}
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  padding-top: 2rem;
+}
+
+.bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 40px;
+}
+
+.bar-wrapper {
+  height: 150px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+.bar {
+  width: 100%;
+  background: var(--color-primary);
+  opacity: 0.7;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.bar.peak {
+  opacity: 1;
+}
+
+.bar .tooltip {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.bar:hover .tooltip {
+  opacity: 1;
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.status-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.status-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.status-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.progress-bg {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.delivered { background: var(--color-success); }
+.progress-fill.kitchen { background: var(--color-warning); }
+.progress-fill.cancelled { background: var(--color-error); }
+
+.top-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.top-item-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 100px 100px;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.top-item-row:last-child {
+  border-bottom: none;
+}
+
+.top-item-row .rank {
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.top-item-row .name {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.top-item-row .qty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.top-item-row .rev {
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+}
+
+.no-data {
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .analytics-layout { grid-template-columns: 1fr; }
+}
