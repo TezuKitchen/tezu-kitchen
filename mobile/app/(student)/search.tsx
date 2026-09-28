@@ -177,7 +177,7 @@ export default function SearchScreen() {
 
   const fetchRestaurants = async () => {
     try {
-      const response = await api.get('/restaurants');
+      const response = await api.get('/restaurants?size=100');
       const content = response.data?.data?.content ?? [];
       setRestaurants(content);
     } catch (error) {

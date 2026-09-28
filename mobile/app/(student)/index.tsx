@@ -162,7 +162,7 @@ export default function StudentHome() {
   const fetchRestaurants = useCallback(async () => {
     try {
       const [restRes, favRes] = await Promise.all([
-        api.get('/restaurants'),
+        api.get('/restaurants?size=100'),
         api.get('/favorites').catch(() => ({ data: { data: [] } }))
       ]);
       setRestaurants(restRes.data.data.content);
