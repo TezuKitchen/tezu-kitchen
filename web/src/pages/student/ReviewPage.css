@@ -1,0 +1,157 @@
+.review-page {
+  min-height: calc(100vh - 64px); /* assuming navbar height */
+  background-color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.review-page__card {
+  background: var(--color-surface);
+  width: 100%;
+  max-width: 500px;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--color-border);
+}
+
+.review-page__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.review-page__subtitle {
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+.review-page__error-msg {
+  background: #FEF2F2;
+  color: var(--color-error);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+  border: 1px solid #FCA5A5;
+}
+
+.review-page__error {
+  text-align: center;
+  color: var(--color-error);
+  font-size: 1.2rem;
+  margin-top: 40px;
+}
+
+.review-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.review-page__stars-container {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.review-page__star-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.review-page__star-btn:hover {
+  transform: scale(1.1);
+}
+
+.review-page__star-icon {
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.review-page__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-page__label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.review-page__textarea {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-background);
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.review-page__textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.1);
+}
+
+.review-page__actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.review-page__cancel-btn {
+  flex: 1;
+  padding: 12px;
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.review-page__cancel-btn:hover:not(:disabled) {
+  background: var(--color-border);
+}
+
+.review-page__cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.review-page__submit-btn {
+  flex: 2;
+  padding: 12px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.review-page__submit-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.review-page__submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
