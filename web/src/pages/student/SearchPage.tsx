@@ -14,6 +14,10 @@ interface Restaurant {
   bannerUrl: string;
 }
 
+const POPULAR_DISHES = [
+  'Biryani', 'Paneer', 'Momos', 'Rolls', 'Noodles', 'Dosa', 'Burgers', 'Fried Rice', 'Coffee', 'Paratha'
+];
+
 const SearchPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,11 +84,24 @@ const SearchPage: React.FC = () => {
           <input
             type="text"
             className="search-page__input"
-            placeholder="Search for restaurants, cuisines, or locations..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
+          {query.length === 0 && (
+            <div className="search-page__placeholder-container" style={{ pointerEvents: 'none' }}>
+              <span className="static-text">Search for </span>
+              <div className="animated-words-box">
+                <div className="animated-words-list">
+                  {POPULAR_DISHES.map((dish, i) => (
+                    <span key={i} className="animated-word">{dish}</span>
+                  ))}
+                  {/* Duplicate first item to make the loop seamless */}
+                  <span className="animated-word">{POPULAR_DISHES[0]}</span>
+                </div>
+              </div>
+            </div>
+          )}
           {query && (
             <button className="search-page__clear-btn" onClick={handleClear}>
               <X size={20} />

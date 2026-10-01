@@ -47,6 +47,56 @@
   color: var(--color-text-light);
 }
 
+.search-page__placeholder-container {
+  position: absolute;
+  left: 48px; /* icon padding */
+  right: 48px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--color-text-light);
+  overflow: hidden;
+}
+
+.animated-words-box {
+  display: inline-block;
+  height: 24px;
+  overflow: hidden;
+  position: relative;
+  margin-left: 0.35rem;
+}
+
+.animated-words-list {
+  display: flex;
+  flex-direction: column;
+  animation: slideWords 30s infinite cubic-bezier(0.8, 0, 0.2, 1);
+}
+
+.animated-word {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* 10 distinct frames (each word holds for a bit, then transitions) */
+@keyframes slideWords {
+  0%, 8% { transform: translateY(0); }
+  10%, 18% { transform: translateY(-24px); }
+  20%, 28% { transform: translateY(-48px); }
+  30%, 38% { transform: translateY(-72px); }
+  40%, 48% { transform: translateY(-96px); }
+  50%, 58% { transform: translateY(-120px); }
+  60%, 68% { transform: translateY(-144px); }
+  70%, 78% { transform: translateY(-168px); }
+  80%, 88% { transform: translateY(-192px); }
+  90%, 98% { transform: translateY(-216px); }
+  100% { transform: translateY(-240px); }
+}
+
 .search-page__clear-btn {
   background: none;
   border: none;

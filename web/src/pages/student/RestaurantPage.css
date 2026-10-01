@@ -359,7 +359,7 @@
 .restaurant-page__add-btn {
   width: 100%;
   padding: 6px 0;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-primary);
   color: var(--color-primary);
   font-weight: 700;
@@ -385,7 +385,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-primary);
   border-radius: 6px;
   overflow: hidden;
@@ -420,7 +420,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-surface);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--color-border);
   padding: 16px 24px;

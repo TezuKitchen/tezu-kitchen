@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
-import { Home, Search, Package, Heart, User, ShoppingCart, LogOut } from 'lucide-react';
+import { Home, Search, Package, Heart, User, ShoppingCart, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useNotification } from '../../context/NotificationContext';
 import './StudentLayout.css';
 
 const getPageTitle = (pathname: string) => {
@@ -11,13 +12,14 @@ const getPageTitle = (pathname: string) => {
   if (pathname.includes('/favorites')) return 'Favorites';
   if (pathname.includes('/profile')) return 'Profile';
   if (pathname.includes('/cart')) return 'Cart';
+  if (pathname.includes('/notifications')) return 'Notifications';
   return 'Home';
 };
 
 export const StudentLayout: React.FC = () => {
-  // Use optional chaining or defaults in case hooks aren't fully implemented yet
   const { user, logout } = useAuth?.() || { user: null, logout: () => {} };
   const { totalItems } = useCart?.() || { totalItems: 0 };
+  const { unreadCount } = useNotification();
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,6 +76,12 @@ export const StudentLayout: React.FC = () => {
         <header className="student-layout__header">
           <h2 className="student-layout__page-title">{getPageTitle(location.pathname)}</h2>
           <div className="student-layout__header-actions">
+            <Link to="/student/notifications" className="student-layout__cart-btn">
+              <Bell size={24} />
+              {unreadCount > 0 && (
+                <span className="student-layout__cart-badge" style={{ backgroundColor: 'var(--color-secondary)' }}>{unreadCount}</span>
+              )}
+            </Link>
             <Link to="/student/cart" className="student-layout__cart-btn">
               <ShoppingCart size={24} />
               {(totalItems || 0) > 0 && (

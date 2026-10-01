@@ -11,6 +11,8 @@ import OrdersPage from './pages/student/OrdersPage';
 import ProfilePage from './pages/student/ProfilePage';
 import FavoritesPage from './pages/student/FavoritesPage';
 import ReviewPage from './pages/student/ReviewPage';
+import NotificationsPage from './pages/student/NotificationsPage';
+import OrderDetailsPage from './pages/student/OrderDetailsPage';
 import LiveOrdersPage from './pages/owner/LiveOrdersPage';
 import MenuPage from './pages/owner/MenuPage';
 import AnalyticsPage from './pages/owner/AnalyticsPage';
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="review" element={<ReviewPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="orders/:id" element={<OrderDetailsPage />} />
       </Route>
 
       {/* Owner Routes */}

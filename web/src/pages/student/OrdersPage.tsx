@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RefreshCw, MapPin, Package, XCircle, ShoppingBag, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +26,7 @@ interface Order {
 
 const OrdersPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +132,12 @@ const OrdersPage: React.FC = () => {
         ) : (
           <div className="orders-page__list">
             {filteredOrders.map(order => (
-              <div key={order.id} className="order-card">
+              <div 
+                key={order.id} 
+                className="order-card" 
+                onClick={() => navigate(`/student/orders/${order.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="order-card__header">
                   <div className="order-card__title">
                     <h3>{order.restaurantName || 'Restaurant'}</h3>
@@ -173,7 +180,10 @@ const OrdersPage: React.FC = () => {
                   <div className="order-card__actions">
                     <button 
                       className="btn btn--outline btn--danger order-card__cancel-btn"
-                      onClick={() => handleCancel(order.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancel(order.id);
+                      }}
                       disabled={cancellingOrderId === order.id}
                     >
                       {cancellingOrderId === order.id ? (

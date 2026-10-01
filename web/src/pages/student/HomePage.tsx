@@ -22,6 +22,19 @@ interface Favorite {
   restaurantLocation: string;
 }
 
+const DISH_CATEGORIES = [
+  { id: 'biryani', name: 'Biryani', image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=200&auto=format&fit=crop&q=80', query: 'Biryani' },
+  { id: 'paneer', name: 'Paneer', image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=200&auto=format&fit=crop&q=80', query: 'Paneer' },
+  { id: 'momos', name: 'Momos', image: 'https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?w=200&auto=format&fit=crop&q=80', query: 'Momo' },
+  { id: 'rolls', name: 'Rolls', image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=200&auto=format&fit=crop&q=80', query: 'Roll' },
+  { id: 'noodles', name: 'Noodles', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=200&auto=format&fit=crop&q=80', query: 'Noodles' },
+  { id: 'dosa', name: 'Dosa', image: 'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=200&auto=format&fit=crop&q=80', query: 'Dosa' },
+  { id: 'burger', name: 'Burgers', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&auto=format&fit=crop&q=80', query: 'Burger' },
+  { id: 'friedrice', name: 'Fried Rice', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=200&auto=format&fit=crop&q=80', query: 'Fried Rice' },
+  { id: 'coffee', name: 'Chai & Coffee', image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=200&auto=format&fit=crop&q=80', query: 'Coffee' },
+  { id: 'paratha', name: 'Paratha', image: 'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=200&auto=format&fit=crop&q=80', query: 'Paratha' },
+];
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -104,6 +117,26 @@ const HomePage: React.FC = () => {
           <p>{error}</p>
           <button onClick={handleRefresh}>Retry</button>
         </div>
+      )}
+
+      {!error && (
+        <section className="home-page__categories-section">
+          <h2 className="home-page__section-title">What's on your mind?</h2>
+          <div className="home-page__categories-scroll">
+            {DISH_CATEGORIES.map((dish) => (
+              <div 
+                key={dish.id} 
+                className="category-item"
+                onClick={() => navigate(`/student/search?q=${dish.query}`)}
+              >
+                <div className="category-item__image-wrap">
+                  <img src={dish.image} alt={dish.name} loading="lazy" />
+                </div>
+                <span className="category-item__name">{dish.name}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {!error && favorites.length > 0 && (

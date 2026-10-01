@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ClipboardList, UtensilsCrossed, BarChart3, Store as StoreIcon, LogOut } from 'lucide-react';
+import { ClipboardList, UtensilsCrossed, BarChart3, Store as StoreIcon, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
 import './OwnerLayout.css';
 
 const getPageTitle = (pathname: string) => {
@@ -13,6 +14,7 @@ const getPageTitle = (pathname: string) => {
 
 export const OwnerLayout: React.FC = () => {
   const { user, logout } = useAuth?.() || { user: null, logout: () => {} };
+  const { unreadCount } = useNotification();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,7 +68,18 @@ export const OwnerLayout: React.FC = () => {
       <div className="owner-layout__main">
         <header className="owner-layout__header">
           <h2 className="owner-layout__page-title">{getPageTitle(location.pathname)}</h2>
-          <div className="owner-layout__header-actions">
+          <div className="owner-layout__header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/student/notifications')}>
+              <Bell size={24} style={{ color: 'var(--color-text)' }} />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -6, backgroundColor: 'var(--color-secondary)', color: 'white',
+                  borderRadius: '10px', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'
+                }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <div className="owner-layout__user-avatar">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'O'}
             </div>
