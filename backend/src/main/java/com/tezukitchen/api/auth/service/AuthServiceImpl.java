@@ -91,17 +91,19 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Invalid email or password");
         }
 
-        // Validate that the selected role matches the user's actual role
-        UserRole selectedRole;
-        try {
-            selectedRole = UserRole.valueOf(request.getRole().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid role: " + request.getRole());
-        }
+        // Validate that the selected role matches the user's actual role (if provided)
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            UserRole selectedRole;
+            try {
+                selectedRole = UserRole.valueOf(request.getRole().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
 
-        if (user.getRole() != selectedRole) {
-            throw new UnauthorizedException("This account is not registered as a " + selectedRole.name().toLowerCase()
-                    + ". Please select the correct role.");
+            if (user.getRole() != selectedRole) {
+                throw new UnauthorizedException("This account is not registered as a " + selectedRole.name().toLowerCase()
+                        + ". Please select the correct role.");
+            }
         }
 
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole().name());

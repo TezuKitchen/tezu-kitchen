@@ -148,6 +148,58 @@ class AuthModuleTests {
     }
 
     @Test
+    void login_WithMatchingRole_Success() {
+        LoginRequest request = LoginRequest.builder()
+                .email("john@example.com")
+                .password("password123")
+                .role("STUDENT")
+                .build();
+
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+        when(jwtService.generateToken(sampleUserId, "john@example.com", "STUDENT")).thenReturn("mock-access-token");
+        when(jwtService.generateRefreshToken(sampleUserId)).thenReturn("mock-refresh-token");
+        when(jwtService.getJwtRefreshExpirationMs()).thenReturn(604800000L);
+        when(jwtService.getJwtExpirationMs()).thenReturn(3600000L);
+
+        AuthResponse response = authService.login(request);
+
+        assertNotNull(response);
+        assertEquals("mock-access-token", response.getAccessToken());
+        verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
+    }
+
+    @Test
+    void login_WithMismatchedRole_ThrowsUnauthorized() {
+        LoginRequest request = LoginRequest.builder()
+                .email("john@example.com")
+                .password("password123")
+                .role("OWNER")
+                .build();
+
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+
+        assertThrows(UnauthorizedException.class, () -> authService.login(request));
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void login_WithInvalidRole_ThrowsBadRequest() {
+        LoginRequest request = LoginRequest.builder()
+                .email("john@example.com")
+                .password("password123")
+                .role("INVALID_ROLE")
+                .build();
+
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+
+        assertThrows(BadRequestException.class, () -> authService.login(request));
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
     void refreshToken_Success_RotatesToken() {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
 
