@@ -50,7 +50,15 @@ export const LoginPage: React.FC = () => {
         navigate(role === 'OWNER' ? '/owner' : '/student');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      console.error('Login error:', err);
+      const backendMessage = err.response?.data?.message;
+      if (backendMessage) {
+        setError(backendMessage);
+      } else if (err.message === 'Network Error' || !err.response) {
+        setError('Cannot connect to the backend API. Please make sure the backend server is running and reachable.');
+      } else {
+        setError(err.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -97,6 +97,11 @@ const CartPage: React.FC = () => {
           name: 'TezuKitchen',
           description: 'Food Order Payment',
           order_id: razorpayOrderId,
+          modal: {
+            ondismiss: () => {
+              setIsPlacingOrder(false);
+            }
+          },
           handler: async (response: any) => {
             try {
               await api.post('/payments/razorpay/verify', {
@@ -108,6 +113,7 @@ const CartPage: React.FC = () => {
               navigate('/student/orders');
             } catch (err) {
               setOrderError('Payment verification failed');
+              setIsPlacingOrder(false);
             }
           },
           theme: {
