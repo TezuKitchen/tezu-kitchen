@@ -7,9 +7,9 @@ import './OrderDetailsPage.css';
 interface OrderItem {
   id: string;
   menuItemId: string;
-  menuItemName: string;
+  itemName: string;
   quantity: number;
-  price: number;
+  priceAtOrder: number;
 }
 
 interface Order {
@@ -57,7 +57,7 @@ const OrderDetailsPage: React.FC = () => {
   const taxes = Math.round(order.totalAmount * 0.05); // 5% tax
 
   // Calculate the item total based on items since order.totalAmount is the final total in the backend
-  const itemTotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const itemTotal = order.items.reduce((sum, item) => sum + (item.priceAtOrder * item.quantity), 0);
   // Backend totalAmount = itemTotal + deliveryFee + taxes - discount. So we can infer discount
   const discountAmount = Math.max(0, (itemTotal + deliveryFee + taxes) - order.totalAmount);
 
@@ -131,9 +131,9 @@ const OrderDetailsPage: React.FC = () => {
               <div key={item.id} className="order-item-row">
                 <div className="order-item-info">
                   <span className="qty">{item.quantity}x</span>
-                  <span className="name">{item.menuItemName}</span>
+                  <span className="name">{item.itemName}</span>
                 </div>
-                <span className="price">₹{item.price * item.quantity}</span>
+                <span className="price">₹{item.priceAtOrder * item.quantity}</span>
               </div>
             ))}
           </div>

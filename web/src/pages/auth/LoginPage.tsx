@@ -33,7 +33,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       if (mode === 'LOGIN') {
-        const response = await api.post('/auth/login', { email, password });
+        const response = await api.post('/auth/login', { email, password, role });
         const data = response.data.data;
         login(data.accessToken, data, data.refreshToken);
         navigate(role === 'OWNER' ? '/owner' : '/student');
