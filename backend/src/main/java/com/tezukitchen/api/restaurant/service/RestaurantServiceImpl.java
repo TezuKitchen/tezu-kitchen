@@ -13,6 +13,7 @@ import com.tezukitchen.api.restaurant.repository.RestaurantImageRepository;
 import com.tezukitchen.api.restaurant.repository.RestaurantRepository;
 import com.tezukitchen.api.common.exception.BadRequestException;
 import com.tezukitchen.api.user.entity.User;
+import com.tezukitchen.api.common.enums.UserRole;
 import com.tezukitchen.api.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,10 @@ public class RestaurantServiceImpl implements RestaurantService {
     public RestaurantResponse createRestaurant(UUID ownerId, CreateRestaurantRequest request) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", ownerId));
+
+        if (owner.getRole() != UserRole.OWNER && owner.getRole() != UserRole.ADMIN) {
+            throw new ForbiddenException("Only restaurant owners or admins can create a restaurant");
+        }
 
         Restaurant restaurant = Restaurant.builder()
                 .owner(owner)

@@ -1,158 +1,182 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { Check, X, ChefHat, Truck, Package } from 'lucide-react';
 import './LiveOrdersPage.css';
+import { Link } from 'react-router-dom';
 
 interface OrderItem {
-  id: string;
+  id: number;
+  menuItemId: number;
   itemName: string;
   quantity: number;
   price: number;
 }
 
 interface Order {
-  id: string;
+  id: string | number;
+  studentId: string | number;
+  restaurantId: string | number;
+  deliveryAddress: string;
   totalAmount: number;
   status: string;
-  deliveryAddress: string;
-  placedAt: string;
   items: OrderItem[];
-  customer?: {
-    name: string;
-    phone: string;
-  };
+  placedAt: string;
 }
 
 const LiveOrdersPage: React.FC = () => {
   const { user } = useAuth();
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<number | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [activeTab, setActiveTab] = useState<'NEW' | 'ACTIVE' | 'DONE'>('NEW');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'NEW' | 'ACTIVE' | 'DONE'>('NEW');
 
-  useEffect(() => {
-    const fetchRestaurantAndOrders = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await api.get(`/restaurants/owner/${user.id}`);
-        const data = res.data.data;
-        if (data && data.length > 0) {
-          setRestaurantId(data[0].id);
-        } else {
-          setLoading(false);
-          return;
-        }
-      } catch (err: any) {
-        setError('Failed to fetch store details');
-        setLoading(false);
-      }
-    };
-    fetchRestaurantAndOrders();
-  }, [user]);
-
-  const fetchOrders = async () => {
-    if (!restaurantId) return;
+  const fetchStoreAndOrders = async () => {
     try {
-      const res = await api.get(`/orders/restaurant/${restaurantId}?size=50&sort=placedAt,desc`);
-      setOrders(res.data.data.content || []);
-    } catch (err) {
+      if (!user?.id && !user?.userId) return;
+      const uId = user.id || user.userId;
+      
+      const restRes = await api.get(`/restaurants/owner/${uId}`);
+      const restaurants = restRes.data.data;
+      
+      if (!restaurants || restaurants.length === 0) {
+        setRestaurantId(null);
+        setLoading(false);
+        return;
+      }
+      
+      const rId = restaurants[0].id;
+      setRestaurantId(rId);
+      
+      const ordRes = await api.get(`/orders/restaurant/${rId}?size=50&sort=placedAt,desc`);
+      setOrders(ordRes.data.data.content || []);
+    } catch (err: any) {
       console.error(err);
+      setError('Failed to fetch orders');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (restaurantId) {
-      fetchOrders();
-      const interval = setInterval(fetchOrders, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [restaurantId]);
+    fetchStoreAndOrders();
+    const intervalId = setInterval(fetchStoreAndOrders, 30000);
+    return () => clearInterval(intervalId);
+  }, [user]);
 
-  const updateStatus = async (orderId: string, status: string) => {
+  const handleStatusChange = async (orderId: string | number, newStatus: string) => {
     try {
-      await api.patch(`/orders/${orderId}/status`, { status });
-      fetchOrders();
+      await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+      fetchStoreAndOrders();
     } catch (err) {
-      console.error('Failed to update status');
+      console.error('Failed to update status', err);
+      alert('Failed to update order status');
     }
   };
 
-  if (loading) return <div className="live-orders-page__loading">Loading orders...</div>;
-  if (error) return <div className="live-orders-page__error">{error}</div>;
-  if (!restaurantId) return <div className="live-orders-page__empty">Create your store first to receive orders.</div>;
+  if (loading) return <div className="live-orders__loading">Loading...</div>;
+  if (error) return <div className="live-orders__error">{error}</div>;
 
-  const filteredOrders = orders.filter(o => {
-    if (activeTab === 'NEW') return o.status === 'PLACED';
-    if (activeTab === 'ACTIVE') return ['ACCEPTED', 'PREPARING', 'OUT_FOR_DELIVERY'].includes(o.status);
-    return ['DELIVERED', 'REJECTED', 'CANCELLED'].includes(o.status);
-  });
+  if (!restaurantId) {
+    return (
+      <div className="live-orders__empty-store">
+        <h2>Create your store first</h2>
+        <p>You need to set up your restaurant before receiving orders.</p>
+        <Link to="/owner/store" className="live-orders__link-btn">Go to Store Setup</Link>
+      </div>
+    );
+  }
+
+  const newOrders = orders.filter(o => o.status === 'PLACED');
+  const activeOrders = orders.filter(o => ['ACCEPTED', 'PREPARING', 'OUT_FOR_DELIVERY'].includes(o.status));
+  const doneOrders = orders.filter(o => ['DELIVERED', 'REJECTED', 'CANCELLED'].includes(o.status));
+
+  const getVisibleOrders = () => {
+    if (activeTab === 'NEW') return newOrders;
+    if (activeTab === 'ACTIVE') return activeOrders;
+    return doneOrders;
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const time = new Date(dateStr).getTime();
+    const now = new Date().getTime();
+    const diff = Math.floor((now - time) / 60000); // in minutes
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff} min ago`;
+    const hrs = Math.floor(diff / 60);
+    if (hrs < 24) return `${hrs} hr ago`;
+    return new Date(dateStr).toLocaleDateString();
+  };
 
   return (
-    <div className="live-orders-page">
-      <header className="live-orders-page__header">
-        <h1>Kitchen Display</h1>
-        <div className="live-orders-page__tabs">
-          <button className={`tab-btn ${activeTab === 'NEW' ? 'active' : ''}`} onClick={() => setActiveTab('NEW')}>
-            New
-          </button>
-          <button className={`tab-btn ${activeTab === 'ACTIVE' ? 'active' : ''}`} onClick={() => setActiveTab('ACTIVE')}>
-            Active
-          </button>
-          <button className={`tab-btn ${activeTab === 'DONE' ? 'active' : ''}`} onClick={() => setActiveTab('DONE')}>
-            Done
-          </button>
-        </div>
-      </header>
+    <div className="live-orders__container">
+      <h1 className="live-orders__title">Kitchen Order Dispatch</h1>
+      
+      <div className="live-orders__tabs">
+        <button 
+          className={`live-orders__tab ${activeTab === 'NEW' ? 'live-orders__tab--active' : ''}`}
+          onClick={() => setActiveTab('NEW')}
+        >
+          New <span className="live-orders__badge">{newOrders.length}</span>
+        </button>
+        <button 
+          className={`live-orders__tab ${activeTab === 'ACTIVE' ? 'live-orders__tab--active' : ''}`}
+          onClick={() => setActiveTab('ACTIVE')}
+        >
+          Active <span className="live-orders__badge">{activeOrders.length}</span>
+        </button>
+        <button 
+          className={`live-orders__tab ${activeTab === 'DONE' ? 'live-orders__tab--active' : ''}`}
+          onClick={() => setActiveTab('DONE')}
+        >
+          Done <span className="live-orders__badge">{doneOrders.length}</span>
+        </button>
+      </div>
 
-      <div className="live-orders-page__grid">
-        {filteredOrders.length === 0 ? (
-          <p className="no-orders">No {activeTab.toLowerCase()} orders</p>
+      <div className="live-orders__grid">
+        {getVisibleOrders().length === 0 ? (
+          <div className="live-orders__empty">No orders in this category</div>
         ) : (
-          filteredOrders.map(order => (
-            <div key={order.id} className="order-card">
-              <div className="order-card__header">
-                <span className={`status-badge status-${order.status.toLowerCase()}`}>
-                  {order.status}
+          getVisibleOrders().map(order => (
+            <div key={order.id} className="live-orders__card">
+              <div className="live-orders__card-header">
+                <span className={`live-orders__status live-orders__status--${order.status.toLowerCase()}`}>
+                  {order.status.replace(/_/g, ' ')}
                 </span>
-                <span className="order-time">{new Date(order.placedAt).toLocaleTimeString()}</span>
+                <span className="live-orders__time">{getTimeAgo(order.placedAt)}</span>
               </div>
               
-              <div className="order-card__body">
-                <div className="delivery-info">
-                  <strong>Delivery To:</strong> {order.deliveryAddress}
-                </div>
-                <ul className="items-list">
-                  {order.items.map(item => (
-                    <li key={item.id}>
-                      <span>{item.quantity}x {item.itemName}</span>
-                      <span>₹{item.price * item.quantity}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="order-total">
-                  Total: ₹{order.totalAmount}
-                </div>
+              <div className="live-orders__address">
+                <strong>Address:</strong> {order.deliveryAddress}
               </div>
-
-              <div className="order-card__actions">
+              
+              <div className="live-orders__items">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="live-orders__item">
+                    <span>{item.quantity} × {item.itemName}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="live-orders__total">
+                Total: ₹{order.totalAmount}
+              </div>
+              
+              <div className="live-orders__actions">
                 {order.status === 'PLACED' && (
                   <>
-                    <button className="btn-reject" onClick={() => updateStatus(order.id, 'REJECTED')}><X size={16}/> Reject</button>
-                    <button className="btn-accept" onClick={() => updateStatus(order.id, 'ACCEPTED')}><Check size={16}/> Accept</button>
+                    <button className="live-orders__btn live-orders__btn--reject" onClick={() => handleStatusChange(order.id, 'REJECTED')}>Reject</button>
+                    <button className="live-orders__btn live-orders__btn--accept" onClick={() => handleStatusChange(order.id, 'ACCEPTED')}>Accept</button>
                   </>
                 )}
                 {order.status === 'ACCEPTED' && (
-                  <button className="btn-prepare" onClick={() => updateStatus(order.id, 'PREPARING')}><ChefHat size={16}/> Start Preparing</button>
+                  <button className="live-orders__btn live-orders__btn--warning" onClick={() => handleStatusChange(order.id, 'PREPARING')}>Start Preparing</button>
                 )}
                 {order.status === 'PREPARING' && (
-                  <button className="btn-delivery" onClick={() => updateStatus(order.id, 'OUT_FOR_DELIVERY')}><Truck size={16}/> Out for Delivery</button>
+                  <button className="live-orders__btn live-orders__btn--primary" onClick={() => handleStatusChange(order.id, 'OUT_FOR_DELIVERY')}>Out for Delivery</button>
                 )}
                 {order.status === 'OUT_FOR_DELIVERY' && (
-                  <button className="btn-deliver" onClick={() => updateStatus(order.id, 'DELIVERED')}><Package size={16}/> Mark Delivered</button>
+                  <button className="live-orders__btn live-orders__btn--success" onClick={() => handleStatusChange(order.id, 'DELIVERED')}>Mark Delivered</button>
                 )}
               </div>
             </div>

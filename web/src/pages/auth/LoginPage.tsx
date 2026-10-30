@@ -1,216 +1,219 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { User, Store, Loader2, AlertCircle } from 'lucide-react';
+import { User, Store, Eye, EyeOff, Loader2 } from 'lucide-react';
 import './LoginPage.css';
 
-export default function LoginPage() {
-  const [role, setRole] = useState<'STUDENT' | 'OWNER'>('STUDENT');
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type Role = 'STUDENT' | 'OWNER';
+type Mode = 'LOGIN' | 'REGISTER';
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-  });
+import foodLogo from '../../assets/food_logo.jpg';
 
-  const { login } = useAuth();
+export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
+  const [role, setRole] = useState<Role>('STUDENT');
+  const [mode, setMode] = useState<Mode>('LOGIN');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // Form State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setIsLoading(true);
 
     try {
-      let response;
       if (mode === 'LOGIN') {
-        response = await api.post('/auth/login', {
-          email: formData.email,
-          password: formData.password,
-        });
+        const response = await api.post('/auth/login', { email, password, role });
+        const data = response.data.data;
+        login(data.accessToken, data, data.refreshToken);
+        navigate(role === 'OWNER' ? '/owner' : '/student');
       } else {
-        response = await api.post('/auth/register', {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          role: role,
+        const response = await api.post('/auth/register', { 
+          name, 
+          email, 
+          phone, 
+          password, 
+          role 
         });
-      }
-
-      const payload = response.data.data;
-      const { accessToken, refreshToken, ...userData } = payload;
-      
-      login(accessToken, userData, refreshToken);
-
-      if (userData.role === 'OWNER') {
-        navigate('/owner');
-      } else {
-        navigate('/student');
+        const data = response.data.data;
+        login(data.accessToken, data, data.refreshToken);
+        navigate(role === 'OWNER' ? '/owner' : '/student');
       }
     } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || err.message || 'An unexpected error occurred. Please try again.';
-      setError(errorMessage);
+      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
+  };
+
+  const getEmailPlaceholder = () => {
+    return role === 'STUDENT' ? 'ananya.s@tezu.ac.in' : 'owner@dhaba.com';
+  };
+
+  const getEmailLabel = () => {
+    return role === 'STUDENT' ? 'University Email' : 'Email Address';
   };
 
   return (
     <div className="login-page">
-      <div className="login-page__left">
-        <div className="login-page__brand">
-          <div className="login-page__logo-container">
-            <span className="login-page__logo-text">TezuKitchen</span>
+      <div className="login-page__container">
+        {/* Left Panel */}
+        <div className="login-page__left">
+          <img src={foodLogo} alt="Food Logo" className="login-page__left-bg" />
+          <div className="login-page__left-overlay">
+            <h1 className="login-page__logo-text">The mess let you down? TezuKitchen won’t.</h1>
+            <p className="login-page__illustration">C'mon and order from nearby campus delivery and pickup restaurants</p>
           </div>
-          <p className="login-page__tagline">
-            Experience the best campus dining and delivery services right at your fingertips.
-          </p>
         </div>
-      </div>
-      
-      <div className="login-page__right">
-        <div className="login-page__form-container">
-          <div className="login-page__header">
-            <h2>{mode === 'LOGIN' ? 'Welcome Back' : 'Create an Account'}</h2>
-            <p>Select your role to continue</p>
-          </div>
 
-          <div className="login-page__roles">
-            <button
-              type="button"
-              className={`role-card ${role === 'STUDENT' ? 'role-card--active' : ''}`}
-              onClick={() => setRole('STUDENT')}
-            >
-              <div className="role-card__icon-wrapper">
-                <User className="role-card__icon" />
-              </div>
-              <div className="role-card__content">
-                <span className="role-card__title">Student</span>
-                <span className="role-card__subtitle">Campus Dining & Delivery</span>
-              </div>
-            </button>
-            <button
-              type="button"
-              className={`role-card ${role === 'OWNER' ? 'role-card--active' : ''}`}
-              onClick={() => setRole('OWNER')}
-            >
-              <div className="role-card__icon-wrapper">
-                <Store className="role-card__icon" />
-              </div>
-              <div className="role-card__content">
-                <span className="role-card__title">Restaurant Owner</span>
-                <span className="role-card__subtitle">Partner Dashboard</span>
-              </div>
-            </button>
-          </div>
+        {/* Right Panel */}
+        <div className="login-page__right">
+        <div className="login-page__header">
+          <h2 className="login-page__title">Welcome to <span style={{ color: 'var(--color-primary)' }}>TezuKitchen</span></h2>
+          <p className="login-page__subtitle">Select your role to get started</p>
+        </div>
 
-          <div className="login-page__tabs">
-            <button
-              type="button"
-              className={`tab ${mode === 'LOGIN' ? 'tab--active' : ''}`}
-              onClick={() => { setMode('LOGIN'); setError(null); }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              className={`tab ${mode === 'REGISTER' ? 'tab--active' : ''}`}
-              onClick={() => { setMode('REGISTER'); setError(null); }}
-            >
-              New Account
-            </button>
+        {/* Role Selector */}
+        <div className="role-selector">
+          <div 
+            className={`role-card ${role === 'STUDENT' ? 'role-card--active' : ''}`}
+            onClick={() => setRole('STUDENT')}
+          >
+            <User size={32} className="role-card__icon" />
+            <h3 className="role-card__title">Student</h3>
+            <p className="role-card__subtitle">Campus Dining & Delivery</p>
           </div>
+          
+          <div 
+            className={`role-card ${role === 'OWNER' ? 'role-card--active' : ''}`}
+            onClick={() => setRole('OWNER')}
+          >
+            <Store size={32} className="role-card__icon" />
+            <h3 className="role-card__title">Restaurant Owner</h3>
+            <p className="role-card__subtitle">Partner Dashboard</p>
+          </div>
+        </div>
 
-          {error && (
-            <div className="alert alert--error">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
+        {/* Mode Tabs */}
+        <div className="mode-tabs">
+          <button 
+            className={`mode-tab ${mode === 'LOGIN' ? 'mode-tab--active' : ''}`}
+            onClick={() => setMode('LOGIN')}
+            type="button"
+          >
+            Sign In
+          </button>
+          <button 
+            className={`mode-tab ${mode === 'REGISTER' ? 'mode-tab--active' : ''}`}
+            onClick={() => setMode('REGISTER')}
+            type="button"
+          >
+            New Account
+          </button>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="error-alert">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {mode === 'REGISTER' && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <div className="input-wrapper">
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="John Doe" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Phone Number</label>
+                <div className="input-wrapper">
+                  <input 
+                    type="tel" 
+                    className="form-input" 
+                    placeholder="+91 9876543210" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </>
           )}
 
-          <form className="login-page__form" onSubmit={handleSubmit}>
-            {mode === 'REGISTER' && (
+          <div className="form-group">
+            <label className="form-label">{getEmailLabel()}</label>
+            <div className="input-wrapper">
+              <input 
+                type="email" 
+                className="form-input" 
+                placeholder={getEmailPlaceholder()}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <div className="input-wrapper">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                className="form-input" 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              <button 
+                type="button" 
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" className="submit-button" disabled={isLoading}>
+            {isLoading ? (
               <>
-                <div className="form-group">
-                  <label htmlFor="name">Full Name</label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Phone Number</label>
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
+                <Loader2 size={20} className="spin" />
+                {mode === 'LOGIN' ? 'Signing in...' : 'Creating account...'}
               </>
+            ) : (
+              mode === 'LOGIN' ? 'Sign In' : 'Create Account'
             )}
-
-            <div className="form-group">
-              <label htmlFor="email">
-                {role === 'STUDENT' ? 'University Email' : 'Email Address'}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder={role === 'STUDENT' ? 'ananya.s@tezu.ac.in' : 'owner@dhaba.com'}
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="spinner" size={20} />
-                  <span>Please wait...</span>
-                </>
-              ) : (
-                <span>{mode === 'LOGIN' ? 'Sign In' : 'Create Account'}</span>
-              )}
-            </button>
-          </form>
-        </div>
+          </button>
+        </form>
+      </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

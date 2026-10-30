@@ -51,6 +51,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Invalid role: " + request.getRole());
         }
 
+        if (role == UserRole.ADMIN) {
+            throw new BadRequestException("Self-registration as ADMIN is not allowed");
+        }
+
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -73,6 +77,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 
@@ -84,6 +89,19 @@ public class AuthServiceImpl implements AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid email or password");
+        }
+
+        // Validate that the selected role matches the user's actual role
+        UserRole selectedRole;
+        try {
+            selectedRole = UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid role: " + request.getRole());
+        }
+
+        if (user.getRole() != selectedRole) {
+            throw new UnauthorizedException("This account is not registered as a " + selectedRole.name().toLowerCase()
+                    + ". Please select the correct role.");
         }
 
         String accessToken = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole().name());
@@ -98,6 +116,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 
@@ -129,6 +148,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 

@@ -1,50 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
+
+:root {
+  --color-primary: #FF5722;
+  --color-primary-hover: #E64A19;
+  --color-primary-light: rgba(255, 87, 34, 0.1);
+  --color-secondary: #10B981;
+  --color-background: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-text: #111827;
+  --color-text-muted: #6B7280;
+  --color-text-light: #9CA3AF;
+  --color-border: #E5E7EB;
+  --color-error: #DC2626;
+  --color-error-light: #FEE2E2;
+}
+
 .login-page {
   display: flex;
   min-height: 100vh;
-  background-color: var(--color-background);
+  justify-content: center;
+  align-items: center;
   font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
+  padding: 2rem;
+}
+
+.login-page__container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1000px;
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .login-page__container {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 .login-page__left {
   display: none;
+  flex: 1 1 50%;
+  position: relative;
+  height: 600px;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+@media (min-width: 1024px) {
+  .login-page__left {
+    display: block;
+  }
+}
+
+.login-page__left-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.login-page__left-overlay {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+  color: white;
+  z-index: 1;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.login-page__logo-text {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: inline;
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.login-page__illustration {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  margin: 0;
 }
 
 .login-page__right {
-  flex: 1;
+  flex: 1 1 50%;
+  background: var(--color-surface);
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
   padding: 2rem;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 2;
 }
 
-.login-page__form-container {
-  width: 100%;
-  max-width: 480px;
-  background-color: var(--color-surface);
-  border-radius: 16px;
-  padding: 2.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+@media (min-width: 1024px) {
+  .login-page__right {
+    padding: 3rem;
+    margin-left: -2rem; /* Overlap effect */
+    height: auto;
+    min-height: 550px; 
+  }
 }
 
 .login-page__header {
-  text-align: center;
   margin-bottom: 2rem;
 }
 
-.login-page__header h2 {
+.login-page__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
 }
 
-.login-page__header p {
+.login-page__subtitle {
   color: var(--color-text-muted);
-  font-size: 1rem;
+  margin: 0;
+  font-size: 0.875rem;
 }
 
-.login-page__roles {
+.role-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
@@ -55,92 +148,83 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.25rem 1rem;
+  padding: 1.5rem;
   border: 2px solid var(--color-border);
-  border-radius: 12px;
-  background-color: var(--color-surface);
+  border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: center;
+  background: var(--color-surface);
 }
 
 .role-card:hover {
-  border-color: var(--color-primary-hover);
-  background-color: rgba(255, 87, 34, 0.02);
+  border-color: var(--color-primary-light);
+  transform: translateY(-2px);
 }
 
 .role-card--active {
   border-color: var(--color-primary);
-  background-color: rgba(255, 87, 34, 0.05);
-}
-
-.role-card__icon-wrapper {
-  margin-bottom: 0.75rem;
-  padding: 0.75rem;
-  background-color: var(--color-background);
-  border-radius: 50%;
-  color: var(--color-text-muted);
-  transition: all 0.2s ease;
-}
-
-.role-card--active .role-card__icon-wrapper {
-  background-color: var(--color-primary);
-  color: var(--color-surface);
+  background-color: var(--color-primary-light);
 }
 
 .role-card__icon {
-  width: 24px;
-  height: 24px;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  transition: color 0.2s ease;
+}
+
+.role-card--active .role-card__icon {
+  color: var(--color-primary);
 }
 
 .role-card__title {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 1rem;
   color: var(--color-text);
-  display: block;
-  margin-bottom: 0.25rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .role-card__subtitle {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
-  display: block;
+  text-align: center;
+  margin: 0;
 }
 
-.login-page__tabs {
+.mode-tabs {
   display: flex;
+  background: var(--color-background);
+  padding: 0.5rem;
+  border-radius: 12px;
   margin-bottom: 2rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
-.tab {
+.mode-tab {
   flex: 1;
   padding: 0.75rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  background: none;
   border: none;
-  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: var(--color-text-muted);
   cursor: pointer;
+  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
-.tab:hover {
+.mode-tab:hover {
   color: var(--color-text);
 }
 
-.tab--active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+.mode-tab--active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.login-page__form {
+.auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .form-group {
@@ -149,140 +233,105 @@
   gap: 0.5rem;
 }
 
-.form-group label {
+.form-label {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);
 }
 
-.form-group input {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 1rem;
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 0;
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  border-radius: 0;
   font-family: 'Inter', sans-serif;
+  font-size: 1rem;
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background: transparent;
   transition: all 0.2s ease;
 }
 
-.form-group input:focus {
+.form-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.1);
+  border-bottom-color: var(--color-primary);
 }
 
-.form-group input::placeholder {
+.form-input::placeholder {
   color: var(--color-text-light);
 }
 
-.btn-primary {
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: var(--color-text);
+}
+
+.submit-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background-color: var(--color-primary);
-  color: var(--color-surface);
-  border: none;
-  border-radius: 8px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 0.5rem;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: 1rem;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+.submit-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.2);
 }
 
-.btn-primary:active:not(:disabled) {
+.submit-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.btn-primary:disabled {
+.submit-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-.spinner {
+.spin {
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+.error-alert {
+  background: var(--color-error-light);
+  color: var(--color-error);
   padding: 1rem;
   border-radius: 8px;
-  margin-bottom: 1.5rem;
   font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.alert--error {
-  background-color: rgba(220, 38, 38, 0.1);
-  color: var(--color-error);
+  font-weight: 500;
+  margin-bottom: 1.5rem;
   border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-/* Desktop Layout */
-@media (min-width: 992px) {
-  .login-page__left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4rem;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #D84315 100%);
-    color: var(--color-surface);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .login-page__left::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-    pointer-events: none;
-  }
-
-  .login-page__brand {
-    position: relative;
-    z-index: 1;
-    max-width: 480px;
-  }
-
-  .login-page__logo-text {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 4rem;
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -1px;
-    margin-bottom: 1.5rem;
-    display: block;
-  }
-
-  .login-page__tagline {
-    font-size: 1.25rem;
-    line-height: 1.6;
-    opacity: 0.9;
-  }
 }

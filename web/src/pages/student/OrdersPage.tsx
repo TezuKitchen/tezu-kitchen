@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, Package, MapPin, Clock, FileText } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, MapPin, Package, XCircle, ShoppingBag, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import './OrdersPage.css';
 
 interface OrderItem {
@@ -16,176 +17,190 @@ interface Order {
   id: string;
   restaurantId: string;
   restaurantName: string;
-  status: string;
+  status: 'PLACED' | 'ACCEPTED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'REJECTED' | 'CANCELLED';
   totalAmount: number;
   deliveryAddress: string;
   placedAt: string;
   items: OrderItem[];
 }
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  
+const OrdersPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
-    if (!user?.userId) return;
-    
+  const fetchOrders = useCallback(async (showLoader = false) => {
+    if (!user) return;
+    const userId = user.userId || user.id;
+    if (!userId) return;
+
+    if (showLoader) setIsLoading(true);
     try {
-      const response = await api.get(`/orders/user/${user.userId}?size=50&sort=placedAt,desc`);
+      const response = await api.get(`/orders/user/${userId}?size=50&sort=placedAt,desc`);
       setOrders(response.data.data.content || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.error('Failed to fetch orders:', error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchOrders();
   }, [user]);
 
+  useEffect(() => {
+    fetchOrders(true);
+  }, [fetchOrders]);
+
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchOrders();
+    setIsRefreshing(true);
+    fetchOrders(false);
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) {
-      return;
-    }
+  const handleCancel = async (orderId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
     
-    setCancellingId(orderId);
+    setCancellingOrderId(orderId);
     try {
       await api.patch(`/orders/${orderId}/status`, { status: 'CANCELLED' });
-      // Update local state instead of full refetch for snappiness
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CANCELLED' } : o));
+      fetchOrders(false);
     } catch (error) {
-      console.error('Error cancelling order:', error);
-      alert('Failed to cancel order. Please try again.');
+      console.error('Failed to cancel order:', error);
+      alert('Failed to cancel the order. It might have already been processed.');
     } finally {
-      setCancellingId(null);
+      setCancellingOrderId(null);
     }
   };
 
   const activeStatuses = ['PLACED', 'ACCEPTED', 'PREPARING', 'OUT_FOR_DELIVERY'];
-  const pastStatuses = ['DELIVERED', 'REJECTED', 'CANCELLED'];
-
+  
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'ACTIVE') {
       return activeStatuses.includes(order.status);
     } else {
-      return pastStatuses.includes(order.status);
+      return !activeStatuses.includes(order.status);
     }
   });
 
-  const getStatusDisplay = (status: string) => {
-    return status.replace(/_/g, ' ');
+  const getStatusBadgeClass = (status: string) => {
+    return `status-badge status-badge--${status.toLowerCase()}`;
   };
-
-  if (loading) {
-    return (
-      <div className="orders-page__loading">
-        <RefreshCw className="spinner" />
-        <p>Loading your orders...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="orders-page">
-      <header className="orders-page__header">
-        <div className="orders-page__title">
-          <FileText size={24} className="icon-primary" />
-          <h1>My Orders</h1>
-        </div>
+      <div className="orders-page__header">
+        <h2>Your Orders</h2>
         <button 
-          className={`btn-icon ${refreshing ? 'spinning' : ''}`}
+          className="btn btn--outline orders-page__refresh"
           onClick={handleRefresh}
-          aria-label="Refresh orders"
+          disabled={isRefreshing || isLoading}
         >
-          <RefreshCw size={20} />
+          <RefreshCw size={18} className={isRefreshing ? 'spin' : ''} />
+          Refresh
         </button>
-      </header>
+      </div>
 
-      <div className="orders-page__tabs">
+      <div className="tabs">
         <button 
-          className={`tab-btn ${activeTab === 'ACTIVE' ? 'active' : ''}`}
+          className={`tab ${activeTab === 'ACTIVE' ? 'tab--active' : ''}`}
           onClick={() => setActiveTab('ACTIVE')}
         >
           Active Orders
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'PAST' ? 'active' : ''}`}
+          className={`tab ${activeTab === 'PAST' ? 'tab--active' : ''}`}
           onClick={() => setActiveTab('PAST')}
         >
           Past Orders
         </button>
       </div>
 
-      <div className="orders-page__list">
-        {filteredOrders.length === 0 ? (
+      <div className="orders-page__content">
+        {isLoading ? (
+          <div className="orders-page__loading">
+            <Loader2 size={40} className="spin" />
+            <p>Loading orders...</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
           <div className="orders-page__empty">
-            <Package size={48} className="icon-muted" />
-            <p>No {activeTab.toLowerCase()} orders found.</p>
+            <ShoppingBag size={48} className="orders-page__empty-icon" />
+            <h3>No {activeTab.toLowerCase()} orders found</h3>
+            <p>When you place orders, they will appear here.</p>
           </div>
         ) : (
-          filteredOrders.map(order => (
-            <div key={order.id} className="order-card">
-              <div className="order-card__header">
-                <div className="order-card__restaurant">
-                  <h3>{order.restaurantName}</h3>
-                  <span className="order-card__time">
-                    <Clock size={14} />
-                    {new Date(order.placedAt).toLocaleString()}
-                  </span>
-                </div>
-                <div className={`status-badge status-badge--${order.status.toLowerCase()}`}>
-                  {getStatusDisplay(order.status)}
-                </div>
-              </div>
-
-              <div className="order-card__items">
-                {order.items.map(item => (
-                  <div key={item.id} className="order-item">
-                    <span className="order-item__qty">{item.quantity}x</span>
-                    <span className="order-item__name">{item.menuItemName}</span>
-                    <span className="order-item__price">₹{item.price * item.quantity}</span>
+          <div className="orders-page__list">
+            {filteredOrders.map(order => (
+              <div 
+                key={order.id} 
+                className="order-card" 
+                onClick={() => navigate(`/student/orders/${order.id}`)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="order-card__header">
+                  <div className="order-card__title">
+                    <h3>{order.restaurantName || 'Restaurant'}</h3>
+                    <span className={getStatusBadgeClass(order.status)}>
+                      {order.status.replace(/_/g, ' ')}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <div className="order-card__date">
+                    {new Date(order.placedAt).toLocaleString()}
+                  </div>
+                </div>
 
-              <div className="order-card__footer">
-                <div className="order-card__address">
-                  <MapPin size={16} className="icon-muted" />
-                  <span>{order.deliveryAddress}</span>
-                </div>
-                <div className="order-card__total">
-                  <span>Total:</span>
-                  <strong>₹{order.totalAmount}</strong>
-                </div>
-              </div>
+                <div className="order-card__body">
+                  <div className="order-card__items">
+                    <div className="order-card__items-title">
+                      <Package size={16} /> Items
+                    </div>
+                    <ul>
+                      {order.items?.map(item => (
+                        <li key={item.id}>
+                          <span className="order-item-qty">{item.quantity}x</span> 
+                          <span className="order-item-name">{item.menuItemName || 'Item'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-              {(order.status === 'PLACED' || order.status === 'ACCEPTED') && (
-                <div className="order-card__actions">
-                  <button 
-                    className="btn-danger-outline"
-                    onClick={() => handleCancelOrder(order.id)}
-                    disabled={cancellingId === order.id}
-                  >
-                    {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
-                  </button>
+                  <div className="order-card__meta">
+                    <div className="order-card__address">
+                      <MapPin size={16} />
+                      <span>{order.deliveryAddress}</span>
+                    </div>
+                    <div className="order-card__total">
+                      Total: <strong>₹{order.totalAmount}</strong>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))
+
+                {(order.status === 'PLACED' || order.status === 'ACCEPTED') && (
+                  <div className="order-card__actions">
+                    <button 
+                      className="btn btn--outline btn--danger order-card__cancel-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancel(order.id);
+                      }}
+                      disabled={cancellingOrderId === order.id}
+                    >
+                      {cancellingOrderId === order.id ? (
+                        <><Loader2 size={16} className="spin" /> Cancelling...</>
+                      ) : (
+                        <><XCircle size={16} /> Cancel Order</>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 };
+
+export default OrdersPage;

@@ -8,13 +8,15 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, User, MapPin, Plus, Trash2, Camera } from 'lucide-react-native';
-import { Image } from 'expo-image';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
+import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { pickImage, uploadImage, getTransformedUrl } from '../../src/services/imageService';
@@ -32,7 +34,9 @@ const showAlert = (title: string, message: string, onOk?: () => void) => {
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, updateUser } = useAuth();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -101,14 +105,27 @@ export default function EditProfileScreen() {
     
     setIsSaving(true);
     try {
+      const finalAddresses = [...addresses];
+      if (newAddress.trim() && !finalAddresses.includes(newAddress.trim())) {
+        finalAddresses.push(newAddress.trim());
+        setAddresses(finalAddresses);
+        setNewAddress('');
+      }
+
       const response = await api.put('/users/profile', {
         name,
         phone,
         avatarUrl,
-        savedAddresses: addresses
+        savedAddresses: finalAddresses
       });
       
-      // Update local user context if possible, skipping here since login requires token
+      await updateUser({
+        name,
+        phone,
+        avatarUrl,
+        savedAddresses: finalAddresses,
+        address: finalAddresses.length > 0 ? finalAddresses[0] : '',
+      });
       
       showAlert('Success', 'Profile updated successfully!', () => {
         router.back();
@@ -148,7 +165,7 @@ export default function EditProfileScreen() {
                <Image
                  source={{ uri: avatarUri || getTransformedUrl(avatarUrl, 'avatar-lg') }}
                  style={styles.avatarImage}
-                 contentFit="cover"
+                 resizeMode="cover"
                />
             ) : (
               <User size={48} color={colors.textMuted} />
@@ -236,7 +253,7 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

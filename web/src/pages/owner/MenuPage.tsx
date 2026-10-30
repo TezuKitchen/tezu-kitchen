@@ -1,56 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { uploadImage } from '../../services/imageService';
-import { Plus, Edit2, Trash2, Image as ImageIcon, X } from 'lucide-react';
+import { uploadImage, getTransformedUrl } from '../../services/imageService';
+import { Trash2, Edit2, Plus, Image as ImageIcon } from 'lucide-react';
 import './MenuPage.css';
 
 interface MenuItem {
-  id: string;
+  id: number;
   name: string;
   description: string;
   price: number;
   category: string;
-  isAvailable: boolean;
-  imageUrl?: string;
+  available: boolean;
+  images?: { imageUrl: string; cloudinaryPublicId: string; displayOrder: number }[];
 }
 
 const MenuPage: React.FC = () => {
   const { user } = useAuth();
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<number | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '', price: '', category: '' });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await api.get(`/restaurants/owner/${user.id}`);
-        const data = res.data.data;
-        if (data && data.length > 0) {
-          setRestaurantId(data[0].id);
-          fetchMenu(data[0].id);
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
-    init();
-  }, [user]);
-
-  const fetchMenu = async (rId: string) => {
+  const fetchMenu = async () => {
     try {
-      const res = await api.get(`/menu/restaurant/${rId}`);
-      setMenuItems(res.data.data || []);
+      if (!user?.id && !user?.userId) return;
+      const uId = user.id || user.userId;
+      
+      const restRes = await api.get(`/restaurants/owner/${uId}`);
+      const restaurants = restRes.data.data;
+      if (!restaurants || restaurants.length === 0) {
+        setLoading(false);
+        return;
+      }
+      
+      const rId = restaurants[0].id;
+      setRestaurantId(rId);
+      
+      const menuRes = await api.get(`/menu/restaurant/${rId}`);
+      setMenuItems(menuRes.data.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,138 +51,165 @@ const MenuPage: React.FC = () => {
     }
   };
 
-  const openModal = (item?: MenuItem) => {
-    if (item) {
-      setEditingItem(item);
-      setFormData({
-        name: item.name,
-        description: item.description,
-        price: item.price.toString(),
-        category: item.category
-      });
-    } else {
-      setEditingItem(null);
-      setFormData({ name: '', description: '', price: '', category: '' });
+  useEffect(() => {
+    fetchMenu();
+  }, [user]);
+
+  const toggleAvailability = async (item: MenuItem) => {
+    try {
+      await api.put(`/menu/${item.id}`, { ...item, available: !item.available });
+      setMenuItems(items => items.map(i => i.id === item.id ? { ...i, available: !i.available } : i));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update availability');
     }
-    setSelectedFile(null);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      await api.delete(`/menu/${id}`);
+      setMenuItems(items => items.filter(i => i.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete item');
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingItem(null);
+    setFormData({ name: '', description: '', price: '', category: '' });
+    setImageFile(null);
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingItem(null);
+  const openEditModal = (item: MenuItem) => {
+    setEditingItem(item);
+    setFormData({
+      name: item.name,
+      description: item.description,
+      price: item.price.toString(),
+      category: item.category
+    });
+    setImageFile(null);
+    setIsModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!restaurantId) return;
-
+    setSubmitting(true);
+    
     try {
-      let savedItem: any;
+      let savedItem: MenuItem;
+      
       if (editingItem) {
         const res = await api.put(`/menu/${editingItem.id}`, {
-          ...formData,
+          ...editingItem,
+          name: formData.name,
+          description: formData.description,
           price: parseFloat(formData.price),
-          isAvailable: editingItem.isAvailable
+          category: formData.category
         });
         savedItem = res.data.data;
       } else {
         const res = await api.post('/menu', {
-          ...formData,
+          restaurantId,
+          name: formData.name,
+          description: formData.description,
           price: parseFloat(formData.price),
-          restaurantId
+          category: formData.category,
+          available: true
         });
         savedItem = res.data.data;
       }
 
-      if (selectedFile && savedItem) {
-        const imgRes = await uploadImage(selectedFile, 'menu-items');
+      if (imageFile) {
+        const uploadResult = await uploadImage(imageFile, 'menu-items');
         await api.post(`/menu/${savedItem.id}/images`, {
-          imageUrl: imgRes.url,
-          cloudinaryPublicId: imgRes.publicId,
+          imageUrl: uploadResult.url,
+          cloudinaryPublicId: uploadResult.publicId,
           displayOrder: 0
         });
       }
 
-      fetchMenu(restaurantId);
-      closeModal();
+      setIsModalOpen(false);
+      fetchMenu();
     } catch (err) {
-      console.error('Failed to save menu item', err);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
-    try {
-      await api.delete(`/menu/${id}`);
-      fetchMenu(restaurantId!);
-    } catch (err) {
-      console.error('Failed to delete item', err);
-    }
-  };
-
-  const toggleAvailability = async (item: MenuItem) => {
-    try {
-      setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, isAvailable: !m.isAvailable } : m));
-      await api.put(`/menu/${item.id}`, {
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        category: item.category,
-        isAvailable: !item.isAvailable
-      });
-    } catch (err) {
-      setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, isAvailable: item.isAvailable } : m));
-      console.error('Failed to toggle availability', err);
+      console.error(err);
+      alert('Failed to save item');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   if (loading) return <div className="menu-page__loading">Loading...</div>;
-  if (!restaurantId) return <div className="menu-page__empty">Create your store first.</div>;
 
-  const categories = Array.from(new Set(menuItems.map(item => item.category)));
+  if (!restaurantId) {
+    return <div className="menu-page__empty">Create your store first to manage menu items.</div>;
+  }
+
+  const groupedItems = menuItems.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
 
   return (
-    <div className="menu-page">
-      <header className="menu-page__header">
-        <h1>Menu Management</h1>
-        <button className="btn-primary" onClick={() => openModal()}>
-          <Plus size={16} /> Add Item
+    <div className="menu-page__container">
+      <div className="menu-page__header">
+        <h1 className="menu-page__title">Menu Items</h1>
+        <button className="menu-page__add-btn" onClick={openAddModal}>
+          <Plus size={20} />
+          Add Item
         </button>
-      </header>
+      </div>
 
       {menuItems.length === 0 ? (
         <div className="menu-page__empty-state">
-          <ImageIcon size={48} />
-          <p>No items on your menu yet.</p>
+          <h2>No items on your menu yet</h2>
+          <p>Start by adding your first delicious dish.</p>
+          <button className="menu-page__add-btn-large" onClick={openAddModal}>Add Item</button>
         </div>
       ) : (
         <div className="menu-page__content">
-          {categories.map(category => (
-            <div key={category} className="menu-category">
-              <h2>{category}</h2>
-              <div className="menu-grid">
-                {menuItems.filter(item => item.category === category).map(item => (
-                  <div key={item.id} className={`menu-card ${!item.isAvailable ? 'unavailable' : ''}`}>
-                    <div className="menu-card__image">
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <div className="placeholder-img"><ImageIcon size={24} /></div>}
-                    </div>
-                    <div className="menu-card__info">
-                      <div className="menu-card__header">
-                        <h3>{item.name}</h3>
-                        <span className="price">₹{item.price}</span>
-                      </div>
-                      <p className="description">{item.description}</p>
-                      
-                      <div className="menu-card__actions">
-                        <label className="toggle-switch">
-                          <input type="checkbox" checked={item.isAvailable} onChange={() => toggleAvailability(item)} />
-                          <span className="slider"></span>
-                        </label>
-                        <div className="action-btns">
-                          <button onClick={() => openModal(item)} className="btn-icon"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(item.id)} className="btn-icon delete"><Trash2 size={16} /></button>
+          {Object.entries(groupedItems).map(([category, items]) => (
+            <div key={category} className="menu-page__category-section">
+              <h2 className="menu-page__category-title">{category}</h2>
+              <div className="menu-page__grid">
+                {items.map(item => (
+                  <div key={item.id} className="menu-page__card">
+                    <div className="menu-page__image-container">
+                      {item.images && item.images.length > 0 ? (
+                        <img src={getTransformedUrl(item.images[0].imageUrl, 'menu-card')} alt={item.name} className="menu-page__image" />
+                      ) : (
+                        <div className="menu-page__image-placeholder">
+                          <ImageIcon size={40} />
                         </div>
+                      )}
+                      <div className="menu-page__actions">
+                        <button className="menu-page__action-btn edit" onClick={() => openEditModal(item)}><Edit2 size={16} /></button>
+                        <button className="menu-page__action-btn delete" onClick={() => handleDelete(item.id)}><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                    
+                    <div className="menu-page__details">
+                      <div className="menu-page__name-price">
+                        <h3 className="menu-page__item-name">{item.name}</h3>
+                        <span className="menu-page__item-price">₹{item.price}</span>
+                      </div>
+                      <p className="menu-page__item-desc">{item.description}</p>
+                      
+                      <div className="menu-page__footer">
+                        <span className="menu-page__category-tag">{item.category}</span>
+                        <label className="menu-page__toggle">
+                          <input 
+                            type="checkbox" 
+                            checked={item.available} 
+                            onChange={() => toggleAvailability(item)}
+                          />
+                          <span className="menu-page__slider"></span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -201,38 +221,38 @@ const MenuPage: React.FC = () => {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>{editingItem ? 'Edit Item' : 'Add Menu Item'}</h2>
-              <button onClick={closeModal} className="btn-close"><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSave} className="modal-form">
-              <div className="form-group">
+        <div className="menu-page__modal-overlay">
+          <div className="menu-page__modal">
+            <h2 className="menu-page__modal-title">{editingItem ? 'Edit Item' : 'Add Item'}</h2>
+            <form onSubmit={handleSubmit} className="menu-page__form">
+              <div className="menu-page__form-group">
                 <label>Name</label>
-                <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Price (₹)</label>
-                  <input type="number" required min="0" step="1" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Category</label>
-                  <input required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} />
-                </div>
-              </div>
-              <div className="form-group">
+              <div className="menu-page__form-group">
                 <label>Description</label>
                 <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
-              <div className="form-group">
-                <label>Image</label>
-                <input type="file" ref={fileInputRef} onChange={e => setSelectedFile(e.target.files?.[0] || null)} accept="image/*" />
+              <div className="menu-page__form-row">
+                <div className="menu-page__form-group">
+                  <label>Price (₹)</label>
+                  <input required type="number" min="0" step="0.01" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                </div>
+                <div className="menu-page__form-group">
+                  <label>Category</label>
+                  <input required type="text" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="e.g. Starters, Mains" />
+                </div>
               </div>
-              <div className="modal-actions">
-                <button type="button" onClick={closeModal} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Save Item</button>
+              <div className="menu-page__form-group">
+                <label>Image {editingItem && '(Leave empty to keep current)'}</label>
+                <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+              </div>
+              
+              <div className="menu-page__modal-actions">
+                <button type="button" className="menu-page__btn-cancel" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" className="menu-page__btn-save" disabled={submitting}>
+                  {submitting ? 'Saving...' : 'Save Item'}
+                </button>
               </div>
             </form>
           </div>

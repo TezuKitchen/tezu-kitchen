@@ -1,40 +1,46 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { uploadImage } from '../../services/imageService';
-import { Edit2, Camera, MapPin, Store, Check, X } from 'lucide-react';
+import { uploadImage, getTransformedUrl } from '../../services/imageService';
+import { MapPin, Edit3, Image as ImageIcon, Camera } from 'lucide-react';
 import './StorePage.css';
 
+interface RestaurantImage {
+  imageUrl: string;
+  imageType: 'BANNER' | 'LOGO' | 'GALLERY';
+}
+
 interface Restaurant {
-  id: string;
+  id: number;
+  ownerId: number | string;
   name: string;
   description: string;
   location: string;
-  isOpen: boolean;
-  images: { imageUrl: string, imageType: string }[];
+  open: boolean;
+  images?: RestaurantImage[];
 }
 
 const StorePage: React.FC = () => {
-  const { user } = useAuth();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const { user, refreshProfile } = useAuth();
+  const [store, setStore] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', location: '' });
-  
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchStore = async () => {
-    if (!user?.id) return;
     try {
-      const res = await api.get(`/restaurants/owner/${user.id}`);
-      const data = res.data.data;
-      if (data && data.length > 0) {
-        setRestaurant(data[0]);
+      if (!user?.id && !user?.userId) return;
+      const uId = user.id || user.userId;
+      
+      const res = await api.get(`/restaurants/owner/${uId}`);
+      if (res.data.data && res.data.data.length > 0) {
+        setStore(res.data.data[0]);
         setFormData({
-          name: data[0].name,
-          description: data[0].description,
-          location: data[0].location
+          name: res.data.data[0].name,
+          description: res.data.data[0].description,
+          location: res.data.data[0].location
         });
       }
     } catch (err) {
@@ -48,133 +54,187 @@ const StorePage: React.FC = () => {
     fetchStore();
   }, [user]);
 
-  const handleCreateStore = async (e: React.FormEvent) => {
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
+    setSaving(true);
     try {
-      await api.post('/restaurants', { ...formData, ownerId: user.id });
-      fetchStore();
+      if (store) {
+        await api.put(`/restaurants/${store.id}`, {
+          ...formData,
+          open: store.open
+        });
+        setIsEditing(false);
+      } else {
+        await api.post('/restaurants', {
+          ...formData,
+          open: false
+        });
+        if (refreshProfile) await refreshProfile();
+      }
+      await fetchStore();
     } catch (err) {
-      console.error('Failed to create store', err);
+      console.error(err);
+      alert('Failed to save store details');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleUpdateStore = async () => {
-    if (!restaurant) return;
+  const toggleOpen = async () => {
+    if (!store) return;
     try {
-      await api.put(`/restaurants/${restaurant.id}`, {
-        ...formData,
-        isOpen: restaurant.isOpen
+      await api.put(`/restaurants/${store.id}`, {
+        name: store.name,
+        description: store.description,
+        location: store.location,
+        open: !store.open
       });
-      setIsEditing(false);
-      fetchStore();
+      setStore({ ...store, open: !store.open });
     } catch (err) {
-      console.error('Failed to update store', err);
+      console.error(err);
+      alert('Failed to update status');
     }
   };
 
-  const handleToggleOpen = async () => {
-    if (!restaurant) return;
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'BANNER' | 'LOGO') => {
+    const file = e.target.files?.[0];
+    if (!file || !store) return;
+    
+    setUploadingImage(true);
     try {
-      setRestaurant({ ...restaurant, isOpen: !restaurant.isOpen });
-      await api.put(`/restaurants/${restaurant.id}`, {
-        name: restaurant.name,
-        description: restaurant.description,
-        location: restaurant.location,
-        isOpen: !restaurant.isOpen
-      });
-    } catch (err) {
-      setRestaurant({ ...restaurant, isOpen: restaurant.isOpen });
-      console.error('Failed to toggle status', err);
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'LOGO' | 'BANNER') => {
-    if (!e.target.files || !e.target.files[0] || !restaurant) return;
-    const file = e.target.files[0];
-    try {
-      const result = await uploadImage(file, 'restaurants');
-      await api.post(`/restaurants/${restaurant.id}/images`, {
-        imageUrl: result.url,
-        cloudinaryPublicId: result.publicId,
+      const uploadResult = await uploadImage(file, 'restaurants');
+      await api.post(`/restaurants/${store.id}/images`, {
+        imageUrl: uploadResult.url,
+        cloudinaryPublicId: uploadResult.publicId,
         imageType: type,
         displayOrder: 0
       });
-      fetchStore();
+      await fetchStore();
     } catch (err) {
-      console.error('Failed to upload image', err);
+      console.error(err);
+      alert('Failed to upload image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
   if (loading) return <div className="store-page__loading">Loading...</div>;
 
-  if (!restaurant) {
+  if (!store) {
     return (
-      <div className="store-page__create">
-        <h2>Create Your Store</h2>
-        <form onSubmit={handleCreateStore} className="store-form">
-          <input placeholder="Store Name" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-          <textarea placeholder="Description" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-          <input placeholder="Location" required value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-          <button type="submit" className="btn-primary">Create Store</button>
-        </form>
+      <div className="store-page__container">
+        <div className="store-page__create-card">
+          <h1>Create Your Store</h1>
+          <p>Setup your restaurant details to start accepting orders.</p>
+          <form onSubmit={handleCreateOrUpdate} className="store-page__form">
+            <div className="store-page__form-group">
+              <label>Restaurant Name</label>
+              <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Tezu Cafe" />
+            </div>
+            <div className="store-page__form-group">
+              <label>Description</label>
+              <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="What kind of food do you serve?" />
+            </div>
+            <div className="store-page__form-group">
+              <label>Location</label>
+              <input required type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="e.g. Food Court, North Campus" />
+            </div>
+            <button type="submit" className="store-page__btn store-page__btn--primary" disabled={saving}>
+              {saving ? 'Creating...' : 'Create Store'}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
-  const logoImg = restaurant.images?.find(img => img.imageType === 'LOGO')?.imageUrl;
-  const bannerImg = restaurant.images?.find(img => img.imageType === 'BANNER')?.imageUrl;
+  const bannerImg = store.images?.find(i => i.imageType === 'BANNER')?.imageUrl;
+  const logoImg = store.images?.find(i => i.imageType === 'LOGO')?.imageUrl;
 
   return (
-    <div className="store-page">
-      <div className="store-page__banner" style={{ backgroundImage: bannerImg ? `url(${bannerImg})` : 'none', backgroundColor: 'var(--color-border)' }}>
-        <button className="change-img-btn" onClick={() => bannerInputRef.current?.click()}>
-          <Camera size={16} /> Change Banner
-        </button>
-        <input type="file" hidden ref={bannerInputRef} onChange={e => handleImageUpload(e, 'BANNER')} accept="image/*" />
+    <div className="store-page__container">
+      <div className="store-page__header">
+        <h1 className="store-page__title">Store Management</h1>
+        {!isEditing && (
+          <button className="store-page__btn store-page__btn--outline" onClick={() => setIsEditing(true)}>
+            <Edit3 size={18} /> Edit Details
+          </button>
+        )}
       </div>
 
-      <div className="store-page__content">
-        <div className="store-page__logo-wrapper">
-          <div className="store-page__logo">
-            {logoImg ? <img src={logoImg} alt="Logo" /> : <Store size={40} color="var(--color-text-muted)" />}
-          </div>
-          <button className="change-img-btn-sm" onClick={() => logoInputRef.current?.click()}>
-            <Camera size={14} />
-          </button>
-          <input type="file" hidden ref={logoInputRef} onChange={e => handleImageUpload(e, 'LOGO')} accept="image/*" />
-        </div>
-
-        <div className="store-page__header-actions">
-          <label className="toggle-switch">
-            <input type="checkbox" checked={restaurant.isOpen} onChange={handleToggleOpen} />
-            <span className="slider"></span>
-            <span className="label-text">{restaurant.isOpen ? 'Accepting Orders' : 'Currently Closed'}</span>
-          </label>
-          {!isEditing && (
-            <button className="btn-edit" onClick={() => setIsEditing(true)}>
-              <Edit2 size={16} /> Edit Profile
-            </button>
+      <div className="store-page__profile-card">
+        <div className="store-page__banner">
+          {bannerImg ? (
+            <img src={getTransformedUrl(bannerImg, 'restaurant-hero')} alt="Banner" className="store-page__banner-img" />
+          ) : (
+            <div className="store-page__banner-placeholder"></div>
           )}
+          <label className="store-page__upload-btn store-page__upload-btn--banner">
+            <Camera size={16} /> {uploadingImage ? 'Uploading...' : 'Change Banner'}
+            <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'BANNER')} disabled={uploadingImage} />
+          </label>
         </div>
 
-        {isEditing ? (
-          <div className="store-form inline-edit">
-            <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-            <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-            <input value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
-            <div className="form-actions">
-              <button onClick={() => setIsEditing(false)} className="btn-cancel"><X size={16} /> Cancel</button>
-              <button onClick={handleUpdateStore} className="btn-save"><Check size={16} /> Save</button>
+        <div className="store-page__content">
+          <div className="store-page__logo-section">
+            <div className="store-page__logo">
+              {logoImg ? (
+                <img src={getTransformedUrl(logoImg, 'avatar-lg')} alt="Logo" />
+              ) : (
+                <ImageIcon size={40} className="store-page__logo-icon" />
+              )}
+              <label className="store-page__upload-btn store-page__upload-btn--logo">
+                <Camera size={14} />
+                <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'LOGO')} disabled={uploadingImage} />
+              </label>
+            </div>
+            
+            <div className="store-page__status-toggle">
+              <span className={`store-page__status-badge ${store.open ? 'open' : 'closed'}`}>
+                {store.open ? 'Accepting Orders' : 'Currently Closed'}
+              </span>
+              <label className="store-page__switch">
+                <input type="checkbox" checked={store.open} onChange={toggleOpen} />
+                <span className="store-page__slider"></span>
+              </label>
             </div>
           </div>
-        ) : (
-          <div className="store-page__info">
-            <h1>{restaurant.name}</h1>
-            <p className="description">{restaurant.description}</p>
-            <p className="location"><MapPin size={16} /> {restaurant.location}</p>
-          </div>
-        )}
+
+          {isEditing ? (
+            <form onSubmit={handleCreateOrUpdate} className="store-page__form store-page__form--editing">
+              <div className="store-page__form-group">
+                <label>Restaurant Name</label>
+                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              <div className="store-page__form-group">
+                <label>Description</label>
+                <textarea required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+              </div>
+              <div className="store-page__form-group">
+                <label>Location</label>
+                <input required type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+              </div>
+              <div className="store-page__form-actions">
+                <button type="button" className="store-page__btn store-page__btn--cancel" onClick={() => {
+                  setIsEditing(false);
+                  setFormData({ name: store.name, description: store.description, location: store.location });
+                }}>Cancel</button>
+                <button type="submit" className="store-page__btn store-page__btn--primary" disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="store-page__info">
+              <h2>{store.name}</h2>
+              <div className="store-page__location">
+                <MapPin size={18} />
+                <span>{store.location}</span>
+              </div>
+              <p className="store-page__desc">{store.description}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

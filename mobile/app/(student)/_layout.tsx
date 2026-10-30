@@ -1,11 +1,15 @@
 import { Tabs } from 'expo-router';
-import { Home, Search, ClipboardList, User } from 'lucide-react-native';
+import { Home, Search, ClipboardList, UtensilsCrossed, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography } from '../../src/theme';
+import { typography } from '../../src/theme';
+import { useCart } from '../../src/context/CartContext';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function StudentLayout() {
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, 8);
+  const { totalItems } = useCart();
+  const { colors } = useTheme();
 
   return (
     <Tabs
@@ -48,11 +52,35 @@ export default function StudentLayout() {
         }}
       />
       <Tabs.Screen
+        name="plate"
+        options={{
+          title: 'Plate',
+          tabBarIcon: ({ color }) => <UtensilsCrossed size={24} color={color} />,
+          tabBarBadge: totalItems > 0 ? totalItems : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.primary,
+            color: '#FFFFFF',
+            fontSize: 10,
+            lineHeight: 14,
+          },
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <User size={24} color={color} />,
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Settings size={24} color={color} />,
         }}
+      />
+
+      {/* Screens hidden from bottom tab bar */}
+      <Tabs.Screen
+        name="edit-profile"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="change-password"
+        options={{ href: null }}
       />
     </Tabs>
   );

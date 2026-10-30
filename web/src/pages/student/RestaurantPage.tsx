@@ -1,63 +1,73 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Star, Clock, Heart, ShoppingCart, Plus, Minus, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  MapPin,
+  Star,
+  Heart,
+  Clock,
+  Plus,
+  Minus,
+  ShoppingCart,
+  ChevronRight
+} from 'lucide-react';
 import api from '../../services/api';
+import { getTransformedUrl } from '../../services/imageService';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { getTransformedUrl } from '../../services/imageService';
 import type { Restaurant, MenuItem, Review, FavoriteRestaurant } from '../../types';
 import './RestaurantPage.css';
 
-export default function RestaurantPage() {
+const RestaurantPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addItem, updateQuantity, items: cartItems, restaurantId: cartResId, totalItems, totalAmount } = useCart();
   const { user } = useAuth();
-  const { items: cartItems, addItem, updateQuantity, totalItems, totalAmount, restaurantId: cartRestaurantId } = useCart();
+  const isAuthenticated = !!user;
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!id) return;
-    fetchData();
-  }, [id]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [resData, menuData, reviewsData, favData] = await Promise.all([
-        api.get(`/restaurants/${id}`),
-        api.get(`/menu/restaurant/${id}/available`),
-        api.get(`/reviews/restaurant/${id}`),
-        user ? api.get('/favorites') : Promise.resolve({ data: { data: [] } })
-      ]);
+    const fetchAllData = async () => {
+      try {
+        setLoading(true);
+        const [resRes, menuRes, revRes] = await Promise.all([
+          api.get(`/restaurants/${id}`),
+          api.get(`/menu/restaurant/${id}/available`),
+          api.get(`/reviews/restaurant/${id}`).catch(() => ({ data: { data: [] } })),
+        ]);
 
-      setRestaurant(resData.data.data);
-      setMenuItems(menuData.data.data);
-      setReviews(reviewsData.data.data);
-      
-      if (user) {
-        const favorites = favData.data.data as FavoriteRestaurant[];
-        setIsFavorite(favorites.some(f => String(f.restaurantId) === String(id)));
+        setRestaurant(resRes.data.data);
+        setMenuItems(menuRes.data.data);
+        setReviews(revRes.data.data || []);
+
+        if (isAuthenticated) {
+          const favRes = await api.get('/favorites').catch(() => ({ data: { data: [] } }));
+          const favorites: FavoriteRestaurant[] = favRes.data.data || [];
+          setIsFavorite(favorites.some((fav) => fav.restaurantId === id));
+        }
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to load restaurant details.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to load restaurant details');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchAllData();
+  }, [id, isAuthenticated]);
 
   const toggleFavorite = async () => {
-    if (!user) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
+    if (!id) return;
     try {
       await api.post(`/favorites/restaurant/${id}/toggle`);
       setIsFavorite(!isFavorite);
@@ -66,83 +76,105 @@ export default function RestaurantPage() {
     }
   };
 
-  if (isLoading) return <div className="restaurant-page__loading">Loading...</div>;
+  const handleLeaveReview = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    navigate(`/student/review?restaurantId=${id}`);
+  };
+
+  if (loading) return <div className="restaurant-page__loading">Loading...</div>;
   if (error) return <div className="restaurant-page__error">{error}</div>;
   if (!restaurant) return <div className="restaurant-page__not-found">Restaurant not found.</div>;
 
-  // Group menu items by category
   const groupedMenu = menuItems.reduce((acc, item) => {
-    const cat = item.category || 'Uncategorized';
+    const cat = item.category || 'Others';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(item);
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
-  const heroUrl = getTransformedUrl(restaurant.bannerUrl || restaurant.imageUrl, 'restaurant-hero');
+  const getCartItem = (itemId: string) => cartItems.find((i) => i.id === itemId);
+
+  const showCartBar = cartItems.length > 0 && cartResId === id;
 
   return (
     <div className="restaurant-page">
       <div className="restaurant-page__container">
-        
+        {/* Left Column */}
         <div className="restaurant-page__left">
-          <button className="restaurant-page__back-btn" onClick={() => navigate(-1)}>
-            <ArrowLeft size={20} /> Back
-          </button>
-          
           <div className="restaurant-page__hero">
-            {heroUrl ? (
-              <img src={heroUrl} alt={restaurant.name} className="restaurant-page__hero-img" />
+            {restaurant.bannerUrl ? (
+              <img
+                src={getTransformedUrl(restaurant.bannerUrl, 'restaurant-hero')}
+                alt={restaurant.name}
+                className="restaurant-page__hero-img"
+              />
             ) : (
               <div className="restaurant-page__hero-placeholder" />
             )}
-            <button className={`restaurant-page__fav-btn ${isFavorite ? 'active' : ''}`} onClick={toggleFavorite}>
+            <button
+              className={`restaurant-page__fav-btn ${isFavorite ? 'restaurant-page__fav-btn--active' : ''}`}
+              onClick={toggleFavorite}
+              aria-label="Toggle Favorite"
+            >
               <Heart fill={isFavorite ? 'currentColor' : 'none'} size={24} />
             </button>
           </div>
 
           <div className="restaurant-page__info">
-            <h1 className="restaurant-page__title">{restaurant.name}</h1>
+            <h1 className="restaurant-page__name">{restaurant.name}</h1>
             <p className="restaurant-page__desc">{restaurant.description}</p>
-            <p className="restaurant-page__loc">{restaurant.location}</p>
-            
             <div className="restaurant-page__meta">
-              <span className="restaurant-page__meta-item">
-                <Star size={18} className="icon-star" />
-                {restaurant.averageRating?.toFixed(1) || '0.0'} ({restaurant.reviewCount || 0} reviews)
-              </span>
-              <span className="restaurant-page__meta-item">
-                <Clock size={18} className="icon-clock" />
-                30-40 mins
-              </span>
+              <div className="restaurant-page__meta-item">
+                <MapPin size={18} />
+                <span>{restaurant.location}</span>
+              </div>
+              <div className="restaurant-page__meta-item">
+                <Star size={18} className="restaurant-page__star-icon" />
+                <span>{restaurant.averageRating?.toFixed(1) || '0.0'} ({restaurant.reviewCount || 0} reviews)</span>
+              </div>
+              <div className="restaurant-page__meta-item">
+                <Clock size={18} />
+                <span className={restaurant.open ? 'restaurant-page__status--open' : 'restaurant-page__status--closed'}>
+                  {restaurant.open ? 'Open Now' : 'Closed'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="restaurant-page__reviews-section">
+          <div className="restaurant-page__reviews">
             <div className="restaurant-page__reviews-header">
               <h2>Reviews</h2>
-              <Link to={`/student/review?restaurantId=${id}`} className="restaurant-page__review-link">
+              <button className="restaurant-page__review-btn" onClick={handleLeaveReview}>
                 Leave a Review
-              </Link>
+              </button>
             </div>
             
             {reviews.length === 0 ? (
-              <p className="restaurant-page__no-reviews">No reviews yet.</p>
+              <p className="restaurant-page__no-reviews">No reviews yet. Be the first!</p>
             ) : (
-              <div className="restaurant-page__reviews-list">
-                {reviews.map(review => (
+              <div className="restaurant-page__review-list">
+                {reviews.map((review) => (
                   <div key={review.id} className="restaurant-page__review-card">
-                    <div className="restaurant-page__review-head">
-                      <span className="restaurant-page__review-user">{review.userName || 'Anonymous User'}</span>
-                      <span className="restaurant-page__review-date">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="restaurant-page__review-rating">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} fill={i < review.rating ? '#F59E0B' : 'none'} color={i < review.rating ? '#F59E0B' : '#D1D5DB'} />
-                      ))}
+                    <div className="restaurant-page__review-top">
+                      <span className="restaurant-page__review-author">{review.userName || 'Anonymous'}</span>
+                      <div className="restaurant-page__review-stars">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            fill={i < review.rating ? 'var(--color-warning)' : 'none'}
+                            stroke={i < review.rating ? 'var(--color-warning)' : 'var(--color-text-light)'}
+                          />
+                        ))}
+                      </div>
                     </div>
                     <p className="restaurant-page__review-comment">{review.comment}</p>
+                    <span className="restaurant-page__review-date">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -150,47 +182,62 @@ export default function RestaurantPage() {
           </div>
         </div>
 
+        {/* Right Column */}
         <div className="restaurant-page__right">
-          <div className="restaurant-page__menu">
+          <div className="restaurant-page__menu-header">
             <h2>Menu</h2>
-            {Object.keys(groupedMenu).length === 0 ? (
-              <p>No items available.</p>
-            ) : (
-              Object.entries(groupedMenu).map(([category, items]) => (
-                <div key={category} className="restaurant-page__category">
+          </div>
+          
+          {menuItems.length === 0 ? (
+            <p className="restaurant-page__empty-menu">No menu items available.</p>
+          ) : (
+            <div className="restaurant-page__menu-list">
+              {Object.entries(groupedMenu).map(([category, items]) => (
+                <div key={category} className="restaurant-page__menu-category">
                   <h3 className="restaurant-page__category-title">{category}</h3>
-                  <div className="restaurant-page__menu-grid">
-                    {items.map(item => {
-                      const cartItem = cartItems.find(i => i.id === item.id);
-                      const quantity = cartItem?.quantity || 0;
-                      const itemImg = getTransformedUrl(item.primaryImageUrl || item.imageUrl, 'menu-item');
-                      
+                  <div className="restaurant-page__category-items">
+                    {items.map((item) => {
+                      const cartItem = getCartItem(item.id);
                       return (
-                        <div key={item.id} className="restaurant-page__menu-card">
-                          <div className="restaurant-page__menu-card-content">
-                            <div className="restaurant-page__veg-indicator">
-                              <span className="dot"></span>
+                        <div key={item.id} className="restaurant-page__menu-item">
+                          <div className="restaurant-page__item-details">
+                            <div className="restaurant-page__item-header">
+                              <h4 className="restaurant-page__item-name">{item.name}</h4>
+                              <div className="restaurant-page__veg-indicator" aria-label="Veg/Non-veg">
+                                <div className="restaurant-page__veg-circle" />
+                              </div>
                             </div>
-                            <h4 className="restaurant-page__menu-item-name">{item.name}</h4>
-                            <p className="restaurant-page__menu-item-price">₹{item.price}</p>
-                            <p className="restaurant-page__menu-item-desc">{item.description}</p>
+                            <p className="restaurant-page__item-price">₹{item.price.toFixed(2)}</p>
+                            <p className="restaurant-page__item-desc">{item.description}</p>
                           </div>
                           
-                          <div className="restaurant-page__menu-card-actions">
-                            {itemImg && (
-                              <img src={itemImg} alt={item.name} className="restaurant-page__menu-img" />
+                          <div className="restaurant-page__item-actions">
+                            {item.imageUrl ? (
+                              <img
+                                src={getTransformedUrl(item.imageUrl, 'menu-item')}
+                                alt={item.name}
+                                className="restaurant-page__item-img"
+                              />
+                            ) : (
+                              <div className="restaurant-page__item-emoji">🍲</div>
                             )}
+                            
                             <div className="restaurant-page__add-container">
-                              {quantity > 0 ? (
+                              {cartItem ? (
                                 <div className="restaurant-page__stepper">
-                                  <button onClick={() => updateQuantity(item.id, quantity - 1)}><Minus size={16}/></button>
-                                  <span>{quantity}</span>
-                                  <button onClick={() => updateQuantity(item.id, quantity + 1)}><Plus size={16}/></button>
+                                  <button onClick={() => updateQuantity(item.id, cartItem.quantity - 1)}>
+                                    <Minus size={16} />
+                                  </button>
+                                  <span>{cartItem.quantity}</span>
+                                  <button onClick={() => updateQuantity(item.id, cartItem.quantity + 1)}>
+                                    <Plus size={16} />
+                                  </button>
                                 </div>
                               ) : (
-                                <button 
+                                <button
                                   className="restaurant-page__add-btn"
-                                  onClick={() => addItem(item, restaurant.id, restaurant.name)}
+                                  onClick={() => addItem(item, id!, restaurant.name)}
+                                  disabled={!restaurant.open}
                                 >
                                   ADD
                                 </button>
@@ -202,24 +249,32 @@ export default function RestaurantPage() {
                     })}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {totalItems > 0 && cartRestaurantId === id && (
-        <div className="restaurant-page__floating-cart">
-          <div className="restaurant-page__floating-cart-info">
-            <span className="items-count">{totalItems} item{totalItems > 1 ? 's' : ''}</span>
-            <span className="divider">|</span>
-            <span className="total-price">₹{totalAmount}</span>
+      {showCartBar && (
+        <div className="restaurant-page__cart-bar">
+          <div className="restaurant-page__cart-bar-content">
+            <div className="restaurant-page__cart-info">
+              <ShoppingCart size={20} />
+              <span>
+                {totalItems} item{totalItems !== 1 ? 's' : ''} | ₹{totalAmount.toFixed(2)}
+              </span>
+            </div>
+            <button
+              className="restaurant-page__cart-link"
+              onClick={() => navigate('/student/cart')}
+            >
+              View Cart <ChevronRight size={20} />
+            </button>
           </div>
-          <Link to="/student/cart" className="restaurant-page__floating-cart-btn">
-            View Cart <ShoppingCart size={18} />
-          </Link>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default RestaurantPage;

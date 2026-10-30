@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { AuthProvider } from '../src/context/AuthContext';
 import { CartProvider } from '../src/context/CartContext';
 import { NotificationProvider } from '../src/context/NotificationContext';
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -20,6 +21,26 @@ import { StatusBar } from 'expo-status-bar';
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
+function RootNavigation() {
+  const { isDark, colors } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(student)" options={{ headerShown: false }} />
+        <Stack.Screen name="(owner)" options={{ headerShown: false }} />
+        <Stack.Screen name="cart" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="favourites" options={{ headerShown: false }} />
+      </Stack>
+    </>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_700Bold,
@@ -31,7 +52,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      // Hide the splash screen after the fonts have loaded (or an error was returned)
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
@@ -42,20 +62,15 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <AuthProvider>
-        <CartProvider>
-          <NotificationProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(student)" options={{ headerShown: false }} />
-              <Stack.Screen name="(owner)" options={{ headerShown: false }} />
-              <Stack.Screen name="cart" options={{ headerShown: false, presentation: 'modal' }} />
-              <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
-            </Stack>
-          </NotificationProvider>
-        </CartProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CartProvider>
+            <NotificationProvider>
+              <RootNavigation />
+            </NotificationProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,63 +1,33 @@
 import axios from 'axios';
 
-// --- URL Resolution ---
-function getBaseUrl(): string {
-  // 1. Explicit env var
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  // 2. Development default
-  if (import.meta.env.DEV) {
-    return 'http://localhost:8080/api/v1';
-  }
-  // 3. Production
-  return 'https://api.tezukitchen.com/api/v1';
-}
+const API_URL = '/api/v1';
 
-export const API_URL = getBaseUrl();
-console.log('[TezuKitchen Web] API baseURL:', API_URL);
+// Simple event emitter for auth state changes
+type AuthEventCallback = () => void;
+let onUnauthorizedCallback: AuthEventCallback | null = null;
 
-// --- Unauthorized callback ---
-let onUnauthorizedCallback: (() => void) | null = null;
-export function setOnUnauthorized(callback: () => void) {
+export const setOnUnauthorized = (callback: AuthEventCallback) => {
   onUnauthorizedCallback = callback;
-}
+};
 
-// --- Axios Instance ---
 const api = axios.create({
   baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+  },
   timeout: 15000,
 });
 
-// --- Token helpers ---
-function getToken(): string | null {
-  return localStorage.getItem('userToken');
-}
-function getRefreshToken(): string | null {
-  return localStorage.getItem('refreshToken');
-}
-function setTokens(access: string, refresh: string) {
-  localStorage.setItem('userToken', access);
-  localStorage.setItem('refreshToken', refresh);
-}
-function clearAuthStorage() {
-  localStorage.removeItem('userToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('userData');
-}
-
-// --- Request Interceptor (attach JWT) ---
+// Request interceptor to add the auth token
 api.interceptors.request.use(
   (config) => {
-    // Skip auth header for public GET endpoints
-    const url = config.url || '';
-    const isPublicGet =
-      config.method === 'get' &&
-      (url.includes('/restaurants') || url.includes('/menu'));
+    // Public GET endpoints don't need auth
+    const isPublicGet = config.method?.toLowerCase() === 'get' &&
+      (config.url?.includes('/restaurants') || config.url?.includes('/menu'));
+
     if (!isPublicGet) {
-      const token = getToken();
-      if (token) {
+      const token = localStorage.getItem('userToken');
+      if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -66,71 +36,95 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// --- Response Interceptor (silent token refresh) ---
+// Token refresh logic
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
 }> = [];
 
-function processQueue(error: unknown, token: string | null = null) {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
-    } else {
-      prom.resolve(token!);
+    } else if (token) {
+      prom.resolve(token);
     }
   });
   failedQueue = [];
-}
+};
 
+const clearAuthStorage = () => {
+  localStorage.removeItem('userToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('userData');
+};
+
+// Response interceptor with silent token auto-refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/')
-    ) {
+    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') ||
+                           originalRequest?.url?.includes('/auth/register') ||
+                           originalRequest?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({
-            resolve: (token: string) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              resolve(api(originalRequest));
-            },
-            reject,
-          });
-        });
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((newToken) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        isRefreshing = false;
-        clearAuthStorage();
-        onUnauthorizedCallback?.();
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const refreshRes = await axios.post(`${API_URL}/auth/refresh`, {
           refreshToken,
+        }, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 10000,
         });
-        const { accessToken, refreshToken: newRefresh } = response.data.data;
-        setTokens(accessToken, newRefresh);
-        processQueue(null, accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+        const newAuthData = refreshRes.data?.data;
+        const newAccessToken = newAuthData?.accessToken;
+        const newRefreshToken = newAuthData?.refreshToken;
+
+        if (!newAccessToken) {
+          throw new Error('No new access token received');
+        }
+
+        localStorage.setItem('userToken', newAccessToken);
+        if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+
+        processQueue(null, newAccessToken);
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        }
         return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
         clearAuthStorage();
-        onUnauthorizedCallback?.();
-        return Promise.reject(refreshError);
+        if (onUnauthorizedCallback) {
+          onUnauthorizedCallback();
+        }
+        return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
       }

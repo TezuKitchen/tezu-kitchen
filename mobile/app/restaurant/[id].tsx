@@ -5,13 +5,15 @@ import {
   StyleSheet, 
   FlatList, 
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Image
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, Clock, ShoppingBag, Heart } from 'lucide-react-native';
-import { Image } from 'expo-image';
-import { colors, typography, spacing, layout } from '../../src/theme';
+import { ArrowLeft, Star, Clock, ShoppingBag, Heart, UtensilsCrossed } from 'lucide-react-native';
+import { typography, spacing, layout } from '../../src/theme';
+import { ThemeColors } from '../../src/theme/colors';
+import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/services/api';
 import { getTransformedUrl } from '../../src/services/imageService';
 import MenuItemCard, { MenuItem } from '../../src/components/MenuItemCard';
@@ -37,6 +39,8 @@ export default function RestaurantMenuScreen() {
   const insets = useSafeAreaInsets();
   const cart = useCart();
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   
   const heroHeight = Math.max(220, 180 + insets.top);
   const topButtonInset = Math.max(insets.top, 16) + 8;
@@ -58,7 +62,11 @@ export default function RestaurantMenuScreen() {
         ]);
         setMenuItems(menuRes.data.data);
         setRestaurant(restRes.data.data);
-        setReviews(reviewsRes.data.data || []);
+        const reviewsPayload = reviewsRes.data?.data;
+        const reviewsList = Array.isArray(reviewsPayload) 
+          ? reviewsPayload 
+          : (Array.isArray(reviewsPayload?.content) ? reviewsPayload.content : []);
+        setReviews(reviewsList);
 
 
         if (user) {
@@ -103,8 +111,7 @@ export default function RestaurantMenuScreen() {
           <Image
             source={{ uri: getTransformedUrl(restaurant.bannerUrl, 'restaurant-hero') }}
             style={[styles.heroImage, { height: heroHeight }]}
-            contentFit="cover"
-            transition={300}
+            resizeMode="cover"
           />
         ) : null}
         <TouchableOpacity 
@@ -160,7 +167,7 @@ export default function RestaurantMenuScreen() {
           </TouchableOpacity>
         )}
       </View>
-      {reviews.length === 0 ? (
+      {(!Array.isArray(reviews) || reviews.length === 0) ? (
         <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to review!</Text>
       ) : (
         reviews.map((review, index) => (
@@ -234,11 +241,11 @@ export default function RestaurantMenuScreen() {
             ]}>
               <TouchableOpacity 
                 style={styles.floatingCartButton}
-                onPress={() => router.push('/cart')}
+                onPress={() => router.push('/(student)/plate' as any)}
                 activeOpacity={0.9}
               >
                 <View style={styles.cartInfo}>
-                  <ShoppingBag size={20} color={colors.surface} />
+                  <UtensilsCrossed size={20} color={colors.surface} />
                   <View>
                     <Text style={styles.cartItemsText}>
                       {cart.totalItems} ITEM{cart.totalItems > 1 ? 'S' : ''}
@@ -246,7 +253,7 @@ export default function RestaurantMenuScreen() {
                     <Text style={styles.cartTotalText}>₹{cart.totalAmount}</Text>
                   </View>
                 </View>
-                <Text style={styles.viewCartText}>View Cart →</Text>
+                <Text style={styles.viewCartText}>View Plate →</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -256,7 +263,7 @@ export default function RestaurantMenuScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -275,7 +282,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -287,7 +294,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,

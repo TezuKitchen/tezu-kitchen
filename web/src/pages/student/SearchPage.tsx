@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, X, SearchX, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { getTransformedUrl } from '../../services/imageService';
+import { Search, X, MapPin, Clock, SearchX } from 'lucide-react';
 import './SearchPage.css';
 
 interface Restaurant {
@@ -14,60 +14,96 @@ interface Restaurant {
   bannerUrl: string;
 }
 
-export default function SearchPage() {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+const POPULAR_DISHES = [
+  'Biryani', 'Paneer', 'Momos', 'Rolls', 'Noodles', 'Dosa', 'Burgers', 'Fried Rice', 'Coffee', 'Paratha'
+];
+
+const SearchPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+  
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const response = await api.get('/restaurants');
-        setRestaurants(response.data.data.content || []);
-      } catch (error) {
-        console.error('Error fetching restaurants for search:', error);
+        setLoading(true);
+        const res = await api.get('/restaurants?size=100');
+        setRestaurants(res.data.data.content || res.data.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch restaurants');
       } finally {
         setLoading(false);
       }
     };
+
     fetchRestaurants();
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
+      if (query) {
+        setSearchParams({ q: query });
+      } else {
+        setSearchParams({});
+      }
     }, 300);
+
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, setSearchParams]);
 
   const filteredRestaurants = useMemo(() => {
     if (!debouncedQuery.trim()) return restaurants;
-    
     const lowerQuery = debouncedQuery.toLowerCase();
-    return restaurants.filter(
-      r => 
-        r.name.toLowerCase().includes(lowerQuery) || 
-        r.description.toLowerCase().includes(lowerQuery) ||
-        r.location.toLowerCase().includes(lowerQuery)
+    
+    return restaurants.filter((r) => 
+      r.name.toLowerCase().includes(lowerQuery) ||
+      r.description.toLowerCase().includes(lowerQuery) ||
+      r.location.toLowerCase().includes(lowerQuery)
     );
   }, [restaurants, debouncedQuery]);
+
+  const handleClear = () => {
+    setQuery('');
+    setDebouncedQuery('');
+    setSearchParams({});
+  };
 
   return (
     <div className="search-page">
       <div className="search-page__header">
-        <div className="search-page__input-wrapper">
-          <Search className="search-icon" size={20} />
+        <div className="search-page__input-container">
+          <Search className="search-page__input-icon" size={20} />
           <input
             type="text"
             className="search-page__input"
-            placeholder="Search restaurants, cuisines, or locations..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            autoFocus
           />
+          {query.length === 0 && (
+            <div className="search-page__placeholder-container" style={{ pointerEvents: 'none' }}>
+              <span className="static-text">Search for </span>
+              <div className="animated-words-box">
+                <div className="animated-words-list">
+                  {POPULAR_DISHES.map((dish, i) => (
+                    <span key={i} className="animated-word">{dish}</span>
+                  ))}
+                  {/* Duplicate first item to make the loop seamless */}
+                  <span className="animated-word">{POPULAR_DISHES[0]}</span>
+                </div>
+              </div>
+            </div>
+          )}
           {query && (
-            <button className="search-page__clear-btn" onClick={() => setQuery('')}>
+            <button className="search-page__clear-btn" onClick={handleClear}>
               <X size={20} />
             </button>
           )}
@@ -75,59 +111,74 @@ export default function SearchPage() {
       </div>
 
       <div className="search-page__results-info">
-        {debouncedQuery ? (
-          <span>Found {filteredRestaurants.length} restaurants for "{debouncedQuery}"</span>
+        {loading ? (
+          <p>Loading restaurants...</p>
+        ) : error ? (
+          <p className="search-page__error-text">{error}</p>
+        ) : debouncedQuery ? (
+          <h2>Found {filteredRestaurants.length} restaurant{filteredRestaurants.length !== 1 ? 's' : ''} for "{debouncedQuery}"</h2>
         ) : (
-          <span>All Restaurants ({restaurants.length})</span>
+          <h2>All Restaurants ({restaurants.length})</h2>
         )}
       </div>
 
-      {loading ? (
-        <div className="search-page__loading">
-          <div className="spinner"></div>
-          <p>Loading...</p>
-        </div>
-      ) : filteredRestaurants.length === 0 ? (
+      {!loading && !error && filteredRestaurants.length === 0 ? (
         <div className="search-page__empty">
-          <SearchX size={48} className="icon-muted" />
-          <h3>No Restaurants Found</h3>
-          <p>We couldn't find anything matching your search.</p>
-          <button className="btn-primary" onClick={() => setQuery('')}>
+          <SearchX size={64} className="search-page__empty-icon" />
+          <h3>No restaurants found</h3>
+          <p>We couldn't find any restaurants matching your search.</p>
+          <button className="search-page__clear-search-btn" onClick={handleClear}>
             Clear Search
           </button>
         </div>
       ) : (
         <div className="search-page__grid">
-          {filteredRestaurants.map(restaurant => (
-            <div 
-              key={restaurant.id}
-              className="restaurant-card"
-              onClick={() => navigate(`/student/restaurant/${restaurant.id}`)}
-            >
-              <div className="restaurant-card__image-container">
-                <img 
-                  src={getTransformedUrl(restaurant.bannerUrl, 'restaurant-card') || '/placeholder-restaurant.jpg'} 
-                  alt={restaurant.name}
-                  className="restaurant-card__image"
-                />
-                <div className={`restaurant-card__badge ${restaurant.open ? 'badge--open' : 'badge--closed'}`}>
-                  {restaurant.open ? 'Open' : 'Closed'}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="search-page__skeleton-card" />
+            ))
+          ) : (
+            filteredRestaurants.map((restaurant) => (
+              <div 
+                key={restaurant.id}
+                className={`search-page__card ${!restaurant.open ? 'search-page__card--closed' : ''}`}
+                onClick={() => navigate(`/student/restaurant/${restaurant.id}`)}
+              >
+                <div className="search-page__card-image-wrapper">
+                  <img 
+                    src={restaurant.bannerUrl ? getTransformedUrl(restaurant.bannerUrl, 'restaurant-card') : 'https://placehold.co/600x400/png?text=Restaurant'} 
+                    alt={restaurant.name}
+                    className="search-page__card-image"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/png?text=Restaurant';
+                    }}
+                  />
+                  {!restaurant.open && (
+                    <div className="search-page__badge-closed">Closed</div>
+                  )}
+                  {restaurant.open && (
+                    <div className="search-page__badge-open">Open</div>
+                  )}
                 </div>
-              </div>
-              <div className="restaurant-card__info">
-                <h3 className="restaurant-card__name">{restaurant.name}</h3>
-                <p className="restaurant-card__description">{restaurant.description}</p>
-                <div className="restaurant-card__footer">
-                  <div className="restaurant-card__location">
-                    <MapPin size={16} />
-                    <span>{restaurant.location}</span>
+                <div className="search-page__card-content">
+                  <h3 className="search-page__card-name">{restaurant.name}</h3>
+                  <p className="search-page__card-desc">{restaurant.description}</p>
+                  <div className="search-page__card-meta">
+                    <span className="search-page__card-location">
+                      <MapPin size={14} /> {restaurant.location}
+                    </span>
+                    <span className="search-page__card-time">
+                      <Clock size={14} /> 30-40 min
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>
   );
 };
+
+export default SearchPage;

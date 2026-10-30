@@ -1,6 +1,7 @@
 package com.tezukitchen.api.user.controller;
 
 import com.tezukitchen.api.common.response.ApiResponse;
+import com.tezukitchen.api.user.dto.request.ChangePasswordRequest;
 import com.tezukitchen.api.user.dto.request.UpdatePushTokenRequest;
 import com.tezukitchen.api.user.dto.request.UpdateUserRequest;
 import com.tezukitchen.api.user.dto.response.UserResponse;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +41,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getAllUsers(Pageable pageable) {
         Page<UserResponse> response = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", response));
@@ -59,6 +62,14 @@ public class UserController {
         UUID authenticatedUserId = getAuthenticatedUserId();
         UserResponse response = userService.updateUser(authenticatedUserId, authenticatedUserId, request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        UUID authenticatedUserId = getAuthenticatedUserId();
+        userService.changePassword(authenticatedUserId, request);
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
     }
 
     @DeleteMapping("/{id}")

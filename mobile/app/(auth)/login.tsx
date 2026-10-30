@@ -44,7 +44,8 @@ export default function LoginScreen() {
         // Login
         const response = await api.post('/auth/login', {
           email,
-          password
+          password,
+          role
         });
         
         // Backend wraps the AuthResponse in an ApiResponse (so the actual data is in response.data.data)

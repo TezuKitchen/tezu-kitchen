@@ -1,29 +1,14 @@
-export interface ImageData {
+export interface Restaurant {
   id: string;
-  imageUrl: string;
-  cloudinaryPublicId: string;
-  displayOrder: number;
-}
-
-export interface RestaurantImage extends ImageData {
-  imageType: 'LOGO' | 'BANNER' | 'GALLERY';
-}
-
-export interface MenuItemImage extends ImageData {
-  isPrimary: boolean;
-}
-
-export type UserRole = 'STUDENT' | 'OWNER';
-
-export interface User {
-  id?: string | number;
-  userId?: string;
   name: string;
-  email: string;
-  phone?: string;
-  role: UserRole;
-  restaurantId?: number | string;
-  avatarUrl?: string;
+  description: string;
+  location: string;
+  open: boolean;
+  bannerUrl?: string;
+  logoUrl?: string;
+  averageRating?: number;
+  reviewCount?: number;
+  ownerId?: string;
 }
 
 export interface MenuItem {
@@ -33,56 +18,48 @@ export interface MenuItem {
   price: number;
   category: string;
   available: boolean;
-  primaryImageUrl?: string;
+  restaurantId?: string;
   imageUrl?: string;
+  images?: MenuItemImage[];
 }
 
-export interface Restaurant {
-  id: string;
-  ownerId?: string;
-  ownerName?: string;
-  name: string;
-  description: string;
-  location: string;
-  isOpen: boolean;
-  open?: boolean;
-  averageRating?: number;
-  reviewCount?: number;
-  bannerUrl?: string;
-  logoUrl?: string;
-  imageUrl?: string;
-  createdAt?: string;
+export interface CartItem extends MenuItem {
+  quantity: number;
 }
 
 export interface OrderItem {
-  id: string;
+  id?: string;
   menuItemId: string;
-  itemName: string;
+  menuItemName?: string;
+  itemName?: string;
   quantity: number;
-  priceAtOrder: number;
+  price: number;
+  subtotal?: number;
 }
-
-export type OrderStatus =
-  | 'PLACED'
-  | 'ACCEPTED'
-  | 'PREPARING'
-  | 'OUT_FOR_DELIVERY'
-  | 'DELIVERED'
-  | 'REJECTED'
-  | 'CANCELLED';
 
 export interface Order {
   id: string;
   userId: string;
   restaurantId: string;
   restaurantName: string;
+  status: OrderStatus;
   totalAmount: number;
   deliveryAddress: string;
-  status: OrderStatus;
-  placedAt: string;
-  updatedAt: string;
   items: OrderItem[];
+  placedAt: string;
+  updatedAt?: string;
+  deliveredAt?: string;
+  notes?: string;
 }
+
+export type OrderStatus =
+  | 'PLACED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'PREPARING'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'CANCELLED';
 
 export interface Review {
   id: string;
@@ -98,22 +75,54 @@ export interface FavoriteRestaurant {
   id: string;
   restaurantId: string;
   restaurantName: string;
+  restaurantLocation?: string;
   createdAt: string;
 }
 
-export interface PaymentResponse {
-  id: string;
-  orderId: string;
-  amount: number;
-  method: string;
-  status: string;
-  transactionRef?: string;
-  paidAt?: string;
+export interface UserProfile {
+  id?: string;
+  userId?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'STUDENT' | 'OWNER';
+  avatarUrl?: string;
+  savedAddresses?: string[];
+  address?: string;
 }
 
-export interface RazorpayOrderResponse {
-  razorpayOrderId: string;
-  keyId: string;
+export interface ImageData {
+  url: string;
+  publicId: string;
+}
+
+export interface RestaurantImage {
+  id: string;
+  imageUrl: string;
+  cloudinaryPublicId: string;
+  imageType: 'LOGO' | 'BANNER' | 'GALLERY';
+  displayOrder: number;
+}
+
+export interface MenuItemImage {
+  id: string;
+  imageUrl: string;
+  cloudinaryPublicId: string;
+  displayOrder: number;
+}
+
+export interface Promotion {
+  code: string;
+  discountPercentage: number;
+  maxDiscountAmount: number;
+  minOrderAmount: number;
+  discountAmount?: number;
+}
+
+export interface Payment {
+  id: string;
+  orderId: string;
+  method: 'COD' | 'ONLINE';
+  status: string;
   amount: number;
-  currency: string;
 }

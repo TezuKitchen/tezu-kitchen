@@ -6,34 +6,43 @@ import './AnalyticsPage.css';
 interface OrderItem {
   itemName: string;
   quantity: number;
-  price: number;
 }
 
 interface Order {
-  id: string;
+  id: string | number;
   totalAmount: number;
   status: string;
-  placedAt: string;
   items: OrderItem[];
+  placedAt: string;
 }
+
+type Period = 'TODAY' | '7_DAYS' | '30_DAYS' | 'ALL_TIME';
 
 const AnalyticsPage: React.FC = () => {
   const { user } = useAuth();
+  const [restaurantId, setRestaurantId] = useState<number | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [period, setPeriod] = useState<number>(7);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('7_DAYS');
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      if (!user?.id) return;
       try {
-        const res = await api.get(`/restaurants/owner/${user.id}`);
-        const data = res.data.data;
-        if (data && data.length > 0) {
-          const rId = data[0].id;
-          const ordersRes = await api.get(`/orders/restaurant/${rId}?size=500&sort=placedAt,desc`);
-          setOrders(ordersRes.data.data.content || []);
+        if (!user?.id && !user?.userId) return;
+        const uId = user.id || user.userId;
+        
+        const restRes = await api.get(`/restaurants/owner/${uId}`);
+        const restaurants = restRes.data.data;
+        if (!restaurants || restaurants.length === 0) {
+          setLoading(false);
+          return;
         }
+        
+        const rId = restaurants[0].id;
+        setRestaurantId(rId);
+        
+        const ordRes = await api.get(`/orders/restaurant/${rId}?size=500&sort=placedAt,desc`);
+        setOrders(ordRes.data.data.content || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -43,168 +52,208 @@ const AnalyticsPage: React.FC = () => {
     fetchAnalytics();
   }, [user]);
 
-  const metrics = useMemo(() => {
+  const filteredOrders = useMemo(() => {
     const now = new Date();
-    const cutoff = new Date();
-    cutoff.setDate(now.getDate() - period);
+    return orders.filter(order => {
+      const orderDate = new Date(order.placedAt);
+      if (period === 'ALL_TIME') return true;
+      if (period === 'TODAY') {
+        return orderDate.toDateString() === now.toDateString();
+      }
+      if (period === '7_DAYS') {
+        const diff = now.getTime() - orderDate.getTime();
+        return diff <= 7 * 24 * 60 * 60 * 1000;
+      }
+      if (period === '30_DAYS') {
+        const diff = now.getTime() - orderDate.getTime();
+        return diff <= 30 * 24 * 60 * 60 * 1000;
+      }
+      return true;
+    });
+  }, [orders, period]);
 
-    const filtered = period === 0 ? orders : orders.filter(o => new Date(o.placedAt) >= cutoff);
-    
+  const metrics = useMemo(() => {
+    const totalCount = filteredOrders.length;
     let deliveredCount = 0;
     let totalRevenue = 0;
-    let inKitchenCount = 0;
     let cancelledCount = 0;
+    let activeCount = 0;
 
-    const itemsMap: Record<string, { qty: number, rev: number }> = {};
-    const dailyRev: Record<string, number> = {};
+    const itemSales: Record<string, { qty: number; rev: number }> = {};
+    const dailyRevenue: Record<string, number> = {};
 
-    filtered.forEach(o => {
-      if (o.status === 'DELIVERED') {
+    filteredOrders.forEach(order => {
+      if (order.status === 'DELIVERED') {
         deliveredCount++;
-        totalRevenue += o.totalAmount;
+        totalRevenue += order.totalAmount;
         
-        const dateStr = new Date(o.placedAt).toLocaleDateString('en-US', { weekday: 'short' });
-        dailyRev[dateStr] = (dailyRev[dateStr] || 0) + o.totalAmount;
-
-        o.items.forEach(item => {
-          if (!itemsMap[item.itemName]) itemsMap[item.itemName] = { qty: 0, rev: 0 };
-          itemsMap[item.itemName].qty += item.quantity;
-          itemsMap[item.itemName].rev += (item.quantity * item.price);
+        order.items.forEach(item => {
+          if (!itemSales[item.itemName]) itemSales[item.itemName] = { qty: 0, rev: 0 };
+          itemSales[item.itemName].qty += item.quantity;
+          itemSales[item.itemName].rev += (order.totalAmount / order.items.length) * item.quantity; // rough estimate
         });
-      } else if (['PLACED', 'ACCEPTED', 'PREPARING', 'OUT_FOR_DELIVERY'].includes(o.status)) {
-        inKitchenCount++;
-      } else {
+      } else if (order.status === 'CANCELLED' || order.status === 'REJECTED') {
         cancelledCount++;
+      } else {
+        activeCount++;
+      }
+
+      // Daily revenue for last 7 days chart
+      if (order.status === 'DELIVERED') {
+        const d = new Date(order.placedAt);
+        const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+        dailyRevenue[dayStr] = (dailyRevenue[dayStr] || 0) + order.totalAmount;
       }
     });
 
-    const totalOrders = filtered.length;
     const avgOrderValue = deliveredCount > 0 ? totalRevenue / deliveredCount : 0;
-    const completionRate = totalOrders > 0 ? (deliveredCount / totalOrders) * 100 : 0;
+    const completionRate = totalCount > 0 ? (deliveredCount / totalCount) * 100 : 0;
 
-    const topItems = Object.entries(itemsMap)
-      .map(([name, stats]) => ({ name, ...stats }))
+    const topItems = Object.entries(itemSales)
+      .map(([name, data]) => ({ name, qty: data.qty, rev: data.rev }))
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5);
 
-    const chartData = [];
-    let maxDailyRev = 0;
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const label = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const rev = dailyRev[label] || 0;
-      if (rev > maxDailyRev) maxDailyRev = rev;
-      chartData.push({ label, rev });
-    }
-
     return {
-      totalRevenue, totalOrders, avgOrderValue, completionRate,
-      deliveredCount, inKitchenCount, cancelledCount, topItems, chartData, maxDailyRev
+      totalRevenue,
+      totalCount,
+      avgOrderValue,
+      completionRate,
+      deliveredCount,
+      cancelledCount,
+      activeCount,
+      topItems,
+      dailyRevenue
     };
-  }, [orders, period]);
+  }, [filteredOrders]);
 
   if (loading) return <div className="analytics-page__loading">Loading analytics...</div>;
 
-  return (
-    <div className="analytics-page">
-      <header className="analytics-page__header">
-        <h1>Business Dashboard</h1>
-        <div className="period-filters">
-          <button className={period === 1 ? 'active' : ''} onClick={() => setPeriod(1)}>Today</button>
-          <button className={period === 7 ? 'active' : ''} onClick={() => setPeriod(7)}>7 Days</button>
-          <button className={period === 30 ? 'active' : ''} onClick={() => setPeriod(30)}>30 Days</button>
-          <button className={period === 0 ? 'active' : ''} onClick={() => setPeriod(0)}>All Time</button>
-        </div>
-      </header>
+  if (!restaurantId) {
+    return <div className="analytics-page__empty">Create your store first to view analytics.</div>;
+  }
 
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <span className="label">Total Revenue</span>
-          <span className="value">₹{metrics.totalRevenue.toLocaleString()}</span>
-        </div>
-        <div className="metric-card">
-          <span className="label">Total Orders</span>
-          <span className="value">{metrics.totalOrders}</span>
-        </div>
-        <div className="metric-card">
-          <span className="label">Avg Order Value</span>
-          <span className="value">₹{metrics.avgOrderValue.toFixed(0)}</span>
-        </div>
-        <div className="metric-card">
-          <span className="label">Completion Rate</span>
-          <span className="value">{metrics.completionRate.toFixed(1)}%</span>
+  // Build chart data
+  const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return daysOfWeek[d.getDay()];
+  });
+
+  const chartData = last7Days.map(day => ({
+    day,
+    revenue: metrics.dailyRevenue[day] || 0
+  }));
+  const maxRevenue = Math.max(...chartData.map(d => d.revenue), 1);
+
+  return (
+    <div className="analytics-page__container">
+      <div className="analytics-page__header">
+        <h1 className="analytics-page__title">Analytics Dashboard</h1>
+        
+        <div className="analytics-page__filters">
+          <button className={`analytics-page__filter ${period === 'TODAY' ? 'active' : ''}`} onClick={() => setPeriod('TODAY')}>Today</button>
+          <button className={`analytics-page__filter ${period === '7_DAYS' ? 'active' : ''}`} onClick={() => setPeriod('7_DAYS')}>7 Days</button>
+          <button className={`analytics-page__filter ${period === '30_DAYS' ? 'active' : ''}`} onClick={() => setPeriod('30_DAYS')}>30 Days</button>
+          <button className={`analytics-page__filter ${period === 'ALL_TIME' ? 'active' : ''}`} onClick={() => setPeriod('ALL_TIME')}>All Time</button>
         </div>
       </div>
 
-      <div className="analytics-layout">
-        <div className="chart-section">
+      <div className="analytics-page__metrics-grid">
+        <div className="analytics-page__metric-card">
+          <span className="analytics-page__metric-label">Total Revenue</span>
+          <span className="analytics-page__metric-value">₹{metrics.totalRevenue.toFixed(0)}</span>
+        </div>
+        <div className="analytics-page__metric-card">
+          <span className="analytics-page__metric-label">Total Orders</span>
+          <span className="analytics-page__metric-value">{metrics.totalCount}</span>
+        </div>
+        <div className="analytics-page__metric-card">
+          <span className="analytics-page__metric-label">Avg Order Value</span>
+          <span className="analytics-page__metric-value">₹{metrics.avgOrderValue.toFixed(0)}</span>
+        </div>
+        <div className="analytics-page__metric-card">
+          <span className="analytics-page__metric-label">Completion Rate</span>
+          <span className="analytics-page__metric-value">{metrics.completionRate.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      <div className="analytics-page__main-grid">
+        <div className="analytics-page__card analytics-page__chart-section">
           <h2>Revenue (Last 7 Days)</h2>
-          <div className="bar-chart">
-            {metrics.chartData.map(d => {
-              const heightPct = metrics.maxDailyRev > 0 ? (d.rev / metrics.maxDailyRev) * 100 : 0;
-              const isPeak = d.rev === metrics.maxDailyRev && d.rev > 0;
+          <div className="analytics-page__bar-chart">
+            {chartData.map((data, idx) => {
+              const heightPct = (data.revenue / maxRevenue) * 100;
+              const isPeak = data.revenue === maxRevenue && data.revenue > 0;
               return (
-                <div key={d.label} className="bar-col">
-                  <div className="bar-wrapper">
-                    <div className={`bar ${isPeak ? 'peak' : ''}`} style={{ height: `${heightPct}%` }}>
-                      <span className="tooltip">₹{d.rev}</span>
-                    </div>
-                  </div>
-                  <span className="bar-label">{d.label}</span>
+                <div key={idx} className="analytics-page__bar-container">
+                  <div className="analytics-page__bar-tooltip">₹{data.revenue.toFixed(0)}</div>
+                  <div 
+                    className={`analytics-page__bar ${isPeak ? 'peak' : ''}`} 
+                    style={{ height: `${Math.max(heightPct, 5)}%` }}
+                  ></div>
+                  <span className="analytics-page__bar-label">{data.day}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="breakdown-section">
-          <h2>Order Status</h2>
-          <div className="status-bars">
-            <div className="status-bar-row">
-              <div className="status-info">
+        <div className="analytics-page__side-grid">
+          <div className="analytics-page__card">
+            <h2>Order Status</h2>
+            <div className="analytics-page__progress-wrapper">
+              <div className="analytics-page__progress-label">
                 <span>Delivered</span>
-                <span>{metrics.deliveredCount}</span>
+                <span>{metrics.totalCount > 0 ? ((metrics.deliveredCount / metrics.totalCount) * 100).toFixed(0) : 0}%</span>
               </div>
-              <div className="progress-bg">
-                <div className="progress-fill delivered" style={{ width: `${metrics.totalOrders ? (metrics.deliveredCount/metrics.totalOrders)*100 : 0}%` }}></div>
-              </div>
-            </div>
-            <div className="status-bar-row">
-              <div className="status-info">
-                <span>In Kitchen</span>
-                <span>{metrics.inKitchenCount}</span>
-              </div>
-              <div className="progress-bg">
-                <div className="progress-fill kitchen" style={{ width: `${metrics.totalOrders ? (metrics.inKitchenCount/metrics.totalOrders)*100 : 0}%` }}></div>
+              <div className="analytics-page__progress-track">
+                <div className="analytics-page__progress-fill success" style={{ width: `${metrics.totalCount > 0 ? (metrics.deliveredCount / metrics.totalCount) * 100 : 0}%` }}></div>
               </div>
             </div>
-            <div className="status-bar-row">
-              <div className="status-info">
-                <span>Cancelled</span>
-                <span>{metrics.cancelledCount}</span>
+            
+            <div className="analytics-page__progress-wrapper">
+              <div className="analytics-page__progress-label">
+                <span>Active / Preparing</span>
+                <span>{metrics.totalCount > 0 ? ((metrics.activeCount / metrics.totalCount) * 100).toFixed(0) : 0}%</span>
               </div>
-              <div className="progress-bg">
-                <div className="progress-fill cancelled" style={{ width: `${metrics.totalOrders ? (metrics.cancelledCount/metrics.totalOrders)*100 : 0}%` }}></div>
+              <div className="analytics-page__progress-track">
+                <div className="analytics-page__progress-fill warning" style={{ width: `${metrics.totalCount > 0 ? (metrics.activeCount / metrics.totalCount) * 100 : 0}%` }}></div>
+              </div>
+            </div>
+
+            <div className="analytics-page__progress-wrapper">
+              <div className="analytics-page__progress-label">
+                <span>Cancelled / Rejected</span>
+                <span>{metrics.totalCount > 0 ? ((metrics.cancelledCount / metrics.totalCount) * 100).toFixed(0) : 0}%</span>
+              </div>
+              <div className="analytics-page__progress-track">
+                <div className="analytics-page__progress-fill error" style={{ width: `${metrics.totalCount > 0 ? (metrics.cancelledCount / metrics.totalCount) * 100 : 0}%` }}></div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="top-items-section">
-        <h2>Top Selling Items</h2>
-        <div className="top-items-list">
-          {metrics.topItems.length > 0 ? metrics.topItems.map((item, idx) => (
-            <div key={item.name} className="top-item-row">
-              <span className="rank">#{idx + 1}</span>
-              <span className="name">{item.name}</span>
-              <span className="qty">{item.qty} sold</span>
-              <span className="rev">₹{item.rev}</span>
-            </div>
-          )) : (
-            <p className="no-data">No completed orders in this period.</p>
-          )}
+          <div className="analytics-page__card">
+            <h2>Top Selling Items</h2>
+            {metrics.topItems.length === 0 ? (
+              <p className="analytics-page__empty-text">No sales data available yet.</p>
+            ) : (
+              <div className="analytics-page__top-items">
+                {metrics.topItems.map((item, idx) => (
+                  <div key={idx} className="analytics-page__top-item">
+                    <div className="analytics-page__top-item-info">
+                      <span className="analytics-page__top-item-rank">#{idx + 1}</span>
+                      <span className="analytics-page__top-item-name">{item.name}</span>
+                    </div>
+                    <div className="analytics-page__top-item-stats">
+                      <span className="analytics-page__top-item-qty">{item.qty} sold</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

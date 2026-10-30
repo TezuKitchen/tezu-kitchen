@@ -3,8 +3,9 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Fallback IP of host machine for physical devices when auto-detection is not available
-const DEFAULT_LOCAL_IP = '10.184.225.61';
+// Current Wi-Fi LAN IP of host machine for physical devices when wireless
+const DEFAULT_LOCAL_IP = '10.83.161.162';
+const ADB_REVERSE_IP = '127.0.0.1';
 
 const getBaseUrl = () => {
   // 1. Explicit override via EXPO_PUBLIC_API_URL in .env if provided
@@ -25,17 +26,30 @@ const getBaseUrl = () => {
       (Constants as any).manifest?.debuggerHost;
 
     if (hostUri) {
-      const host = hostUri.split(':')[0];
-      // Do not use tunnel hostnames (e.g. *.exp.direct or *.ngrok*) because Expo tunnel only proxies port 8081 (Metro), not port 8080 (Backend)
-      const ip = hostUri.split(':')[0];
-      return `http://${ip}:8080/api/v1`;
+      const rawHost = hostUri.split(':')[0];
+      const isTunnel = rawHost.includes('exp.direct') || rawHost.includes('ngrok') || rawHost.includes('localtunnel');
+      const isLocalhost = rawHost === 'localhost' || rawHost === '127.0.0.1';
+
+      if (Platform.OS === 'android') {
+        // If Metro was launched with --localhost, use 127.0.0.1 (ADB reverse)
+        if (isLocalhost) {
+          return `http://${ADB_REVERSE_IP}:8080/api/v1`;
+        }
+        // Tunnel hostnames don't forward port 8080; fall back to local LAN IP
+        if (isTunnel) {
+          return `http://${DEFAULT_LOCAL_IP}:8080/api/v1`;
+        }
+        return `http://${rawHost}:8080/api/v1`;
+      }
+
+      return `http://${rawHost}:8080/api/v1`;
     }
     
-    // Fallbacks if hostUri is not available (e.g. running outside of Expo Go)
+    // Fallbacks if hostUri is not available
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8080/api/v1'; // Android emulator localhost
+      return `http://${ADB_REVERSE_IP}:8080/api/v1`;
     }
-    return 'http://localhost:8080/api/v1'; // iOS simulator localhost
+    return 'http://localhost:8080/api/v1';
   }
   
   // Production URL
@@ -69,7 +83,7 @@ api.interceptors.request.use(
     try {
       // Public endpoints do not need Authorization header (avoids browser CORS preflight issues)
       const isPublicGet = config.method?.toLowerCase() === 'get' &&
-        (config.url?.includes('/restaurants') || config.url?.includes('/menu'));
+        (config.url?.includes('/restaurants') || config.url?.includes('/menu') || config.url?.includes('/reviews'));
 
       if (!isPublicGet) {
         let token: string | null = null;
@@ -213,6 +227,27 @@ api.interceptors.response.use(
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    // Automatic host fallback on Network Error (e.g. switching between USB adb reverse and Wi-Fi)
+    if (!error.response && !originalRequest?._networkRetry && Platform.OS !== 'web') {
+      originalRequest._networkRetry = true;
+      const currentBaseUrl = originalRequest.baseURL || api.defaults.baseURL || '';
+      const currentUrl = originalRequest.url || '';
+      
+      let alternateBaseUrl: string | null = null;
+      if (currentBaseUrl.includes(ADB_REVERSE_IP) || currentUrl.includes(ADB_REVERSE_IP) || currentBaseUrl.includes('localhost')) {
+        alternateBaseUrl = `http://${DEFAULT_LOCAL_IP}:8080/api/v1`;
+      } else if (currentBaseUrl.includes(DEFAULT_LOCAL_IP) || currentUrl.includes(DEFAULT_LOCAL_IP)) {
+        alternateBaseUrl = `http://${ADB_REVERSE_IP}:8080/api/v1`;
+      }
+
+      if (alternateBaseUrl) {
+        console.log(`[TezuKitchen API] Network Error on ${currentBaseUrl}. Retrying via fallback: ${alternateBaseUrl}`);
+        originalRequest.baseURL = alternateBaseUrl;
+        api.defaults.baseURL = alternateBaseUrl;
+        return api(originalRequest);
       }
     }
 
